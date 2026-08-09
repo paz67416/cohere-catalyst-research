@@ -29,7 +29,8 @@
 
 ### 研究計画
 
-- `Cohere_Catalyst_Research_Master_Plan_v2.0.docx` — 研究計画書。Grant Application Memo と Execution Plan v1.0 を統合した参照元
+- `Cohere_Catalyst_Research_Master_Plan_v3.0.docx` — **現行の参照元**。申請内容、研究方針、運用ルール、判断の履歴、現状を1本にまとめたもの。日本語パートと英語パートに分かれており、付録に申請時の提出内容を原文のまま収録しています
+- `Cohere_Catalyst_Research_Master_Plan_v2.0.docx` — 2026年7月時点の版。記録として保存しています。運用上の参照は v3.0 に対して行ってください
 
 ### RAGパイプライン
 
@@ -79,7 +80,7 @@ Cohere の Embed v4.0 / Rerank v3.5 / Command A を用いた、文献レビュ�
 
 ## 著者
 
-Masashi Awata（粟田正志）／ 整合ダイナミクス研究所
+Masashi Awata（粟田正志）／ No Existe Research ／ 整合ダイナミクス研究所
 
 ## Grant
 
