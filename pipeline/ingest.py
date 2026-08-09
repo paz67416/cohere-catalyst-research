@@ -1,5 +1,5 @@
 """
-ingest.py — 文献取り込みスクリプト（Cohere RAGパイプライン）
+ingest.py - 文献取り込みスクリプト（Cohere RAGパイプライン）
 
 やること:
   1. papers/ フォルダ内のPDFを読み込む
@@ -8,13 +8,12 @@ ingest.py — 文献取り込みスクリプト（Cohere RAGパイプライン�
   4. ベクトルと元テキストを store.json に保存する
 
 使い方:
-  1. このフォルダに papers/ を作り、論文PDFを入れる
-  2. `export CO_API_KEY=あなたのAPIキー` を実行（または .env を使う）
+  1. このフォルダに papers/ を作り、対象PDFを入れる
+  2. `$env:CO_API_KEY = "あなたのAPIキー"` を実行（PowerShellの場合）
   3. `python ingest.py` を実行
 
 出力: store.json（ask.py がこれを読む）
 """
-
 import os
 import sys
 import json
@@ -36,7 +35,7 @@ def get_client():
     api_key = os.environ.get("CO_API_KEY")
     if not api_key:
         sys.exit("エラー: 環境変数 CO_API_KEY が設定されていません。"
-                 "\n  export CO_API_KEY=あなたのキー を実行してください。")
+                 "\n  $env:CO_API_KEY = \"あなたのキー\" を実行してください（PowerShellの場合）。")
     return cohere.ClientV2(api_key=api_key)
 
 
@@ -51,7 +50,7 @@ def extract_text(pdf_path):
 
 
 def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    """テキストを重なりつきの断片に分割する。"""
+    """テキストを重なりつきの断片（チャンク）に分割する。"""
     text = " ".join(text.split())  # 余分な空白・改行を圧縮
     if not text:
         return []
@@ -84,11 +83,10 @@ def embed_chunks(co, chunks):
 
 def main():
     co = get_client()
-
     pdf_paths = sorted(glob.glob(os.path.join(PAPERS_DIR, "*.pdf")))
     if not pdf_paths:
         sys.exit(f"エラー: {PAPERS_DIR}/ にPDFが見つかりません。"
-                 f"\n  {PAPERS_DIR}/ フォルダを作り、論文PDFを入れてください。")
+                 f"\n  {PAPERS_DIR}/ フォルダを作り、対象PDFを入れてください。")
 
     records = []
     for pdf_path in pdf_paths:
