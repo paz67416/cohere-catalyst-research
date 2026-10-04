@@ -113,8 +113,8 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   <!-- 4 リズム -->
   <section class="card" id="s4" hidden>
     <h1>音に あわせて 手を にぎって ひらいて</h1>
-    <p class="sub">たかい音で ひらく、ひくい音で にぎる。12びょう つづけてね</p>
-    <div class="cam small"></div>
+    <p class="sub">たかい音で ひらく、ひくい音で にぎる。手は わくの中で。12びょう つづけてね</p>
+    <div class="cam"><div class="roi"></div></div>
     <canvas class="spark" id="spark" width="600" height="60"></canvas>
     <div class="label"><span id="l4t">0 / 12 びょう</span><span id="l4m">うごき：0</span></div>
     <div class="meter" id="m4"><span></span></div>
@@ -126,7 +126,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   <section class="card" id="s5" hidden>
     <h1>手を とめて 3びょう</h1>
     <p class="sub">うごかさないでね</p>
-    <div class="cam small"></div>
+    <div class="cam"><div class="roi"></div></div>
     <div class="label"><span id="l5t">0 / 3 びょう</span><span id="l5m">うごき：0</span></div>
     <div class="meter" id="m5"><span></span></div>
     <div class="hint" id="l5hint"></div>
@@ -150,7 +150,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 <script>
 (function () {
   'use strict';
-  var VERSION = 'setup-check 0.1.4 (2026-10-04)';
+  var VERSION = 'setup-check 0.1.5 (2026-10-04)';
   var $ = function (s) { return document.querySelector(s); };
   var R = { version: VERSION, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
     screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio, inner_w: window.innerWidth, inner_h: window.innerHeight },
@@ -207,23 +207,81 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 
   // ---- カメラとコマの解析 ----
   var maskCv = null, maskCtx = null, maskImg = null;   // レベル 3 で「手」と見ている画素を緑で重ねる
-  function analyze(now) {
+  // 画素の読み出し方は 3 通り。レベル 1 の 3 秒で 1 秒ずつ試し、いちばん速いものを以後使う（スマホでは読み出しが 1 コマ 30 ms かかることがあった）
+  //   canvas_cpu : willReadFrequently の canvas に drawImage → getImageData（0.1.4 までの方法）
+  //   canvas_gpu : ふつうの canvas に drawImage → getImageData（小さい領域の読み戻し）
+  //   videoframe : MediaStreamTrackProcessor で VideoFrame を受け取り copyTo で輝度の面だけを取る（canvas を使わない。iOS にはない）
+  var ac2 = document.createElement('canvas'); ac2.width = 96; ac2.height = 72; var actxd2 = ac2.getContext('2d');
+  var PATHS = ['canvas_cpu', 'canvas_gpu', 'videoframe'];
+  var pathStats = { canvas_cpu: { n: 0, sum: 0, max: 0 }, canvas_gpu: { n: 0, sum: 0, max: 0 }, videoframe: { n: 0, sum: 0, max: 0, format: null, error: null } };
+  var activePath = 'canvas_cpu', benchmarking = false, vfSupported = typeof MediaStreamTrackProcessor === 'function' && typeof VideoFrame === 'function', vfReader = null, vfBuf = null;
+  var forcedPath = (function () { try { var v = new URLSearchParams(location.search).get('path'); return PATHS.indexOf(v) >= 0 ? v : null; } catch (e) { return null; } })();   // ?path=videoframe などで固定（比べたいとき用）
+  function lumaFromCanvas(ctx) {
     var w = ac.width, h = ac.height;
-    // 映像の中央を 4:3 に切り出して解析する（画面の枠と同じ範囲。カメラが縦長でも横長でも同じ）
     var vw = video.videoWidth || w, vh = video.videoHeight || h, sc = Math.max(w / vw, h / vh), sw = w / sc, sh = h / sc;
-    actxd.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, w, h);
-    var d = actxd.getImageData(0, 0, w, h).data;
+    ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, w, h);
+    var d = ctx.getImageData(0, 0, w, h).data, luma = new Float32Array(w * h);
+    for (var q = 0; q < w * h; q++) luma[q] = 0.299 * d[q * 4] + 0.587 * d[q * 4 + 1] + 0.114 * d[q * 4 + 2];
+    return luma;
+  }
+  // VideoFrame の Y 面（または RGBA）から、中央 4:3 を 96×72 に 3×3 の平均で縮める
+  function lumaFromFrame(frame, buf, layout) {
+    var w = ac.width, h = ac.height, fmt = frame.format || '', rect = frame.visibleRect || { x: 0, y: 0, width: frame.codedWidth, height: frame.codedHeight };
+    var vw = rect.width, vh = rect.height, sc = Math.max(w / vw, h / vh), sw = w / sc, sh = h / sc, ox = rect.x + (vw - sw) / 2, oy = rect.y + (vh - sh) / 2;
+    var luma = new Float32Array(w * h), isRGB = /RGB|BGR/.test(fmt), st = layout[0].stride, off = layout[0].offset;
+    for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) {
+      var cx = Math.floor(ox + (i + 0.5) * sw / w), cy = Math.floor(oy + (j + 0.5) * sh / h), acc = 0, cnt = 0;
+      for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+        var px = cx + dx, py = cy + dy; if (px < rect.x || py < rect.y || px >= rect.x + vw || py >= rect.y + vh) continue;
+        if (isRGB) { var b = off + py * st + px * 4; acc += (fmt.indexOf('BGR') === 0) ? 0.114 * buf[b] + 0.587 * buf[b + 1] + 0.299 * buf[b + 2] : 0.299 * buf[b] + 0.587 * buf[b + 1] + 0.114 * buf[b + 2]; }
+        else acc += buf[off + py * st + px];
+        cnt++;
+      }
+      luma[j * w + i] = cnt ? acc / cnt : 0;
+    }
+    return luma;
+  }
+  async function vfLoop(track) {   // VideoFrame を受け取り続ける。videoframe 経路が有効なときだけ解析し、それ以外は閉じるだけ
+    try {
+      var proc = new MediaStreamTrackProcessor({ track: track }); vfReader = proc.readable.getReader();
+      while (true) {
+        var r = await vfReader.read(); if (r.done) break; var frame = r.value;
+        if (!stream) { frame.close(); break; }
+        if (activePath === 'videoframe' && !shouldSkip()) {
+          var t = performance.now();
+          try {
+            var size = frame.allocationSize(); if (!vfBuf || vfBuf.length < size) vfBuf = new Uint8Array(size);
+            var layout = await frame.copyTo(vfBuf);
+            pathStats.videoframe.format = frame.format;
+            var luma = lumaFromFrame(frame, vfBuf, layout);
+            var now = performance.now(), st = finishAnalysis(luma, now);
+            noteTime('videoframe', now - t);
+            if (listeners.frame) listeners.frame(now, st);
+          } catch (e) { pathStats.videoframe.error = String(e && e.name || e); activePath = 'canvas_cpu'; }
+        } else if (activePath === 'videoframe') an.skipped++;
+        frame.close();
+      }
+    } catch (e) { pathStats.videoframe.error = String(e && e.name || e); if (activePath === 'videoframe') activePath = 'canvas_cpu'; }
+  }
+  function noteTime(path, dt) { var p = pathStats[path]; p.n++; p.sum += dt; if (dt > p.max) p.max = dt; an.n++; an.sum += dt; if (dt > an.max) an.max = dt; an.ema = an.ema == null ? dt : an.ema * 0.9 + dt * 0.1; an.analyzed++; }
+  function analyze(now) {   // canvas の 2 経路。videoframe 経路は vfLoop から finishAnalysis を直接呼ぶ
+    var luma = activePath === 'canvas_gpu' ? lumaFromCanvas(actxd2) : lumaFromCanvas(actxd);
+    return finishAnalysis(luma, now);
+  }
+  function finishAnalysis(luma, now) {
+    var w = ac.width, h = ac.height;
     var x0 = Math.round(w * 0.1), x1 = Math.round(w * 0.9), y0 = Math.round(h * 0.1), y1 = Math.round(h * 0.9);
     var ref = null;   // 約 100 ms 前のコマ（なければいちばん古いもの）
     for (var k = lumaRing.length - 1; k >= 0; k--) { if (now - lumaRing[k].t >= MOTION_SPAN_MS) { ref = lumaRing[k].luma; break; } }
     if (!ref && lumaRing.length) ref = lumaRing[0].luma;
-    var n = 0, sum = 0, white = 0, dark = 0, motion = 0, luma = new Float32Array(w * h), hist = new Uint32Array(256);
+    var n = 0, sum = 0, white = 0, dark = 0, motion = 0, hist = new Uint32Array(256);
     for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) {
-      var i = (y * w + x) * 4, L = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-      luma[y * w + x] = L; sum += L; n++; hist[L | 0]++;
+      var q = y * w + x, L = luma[q];
+      sum += L; n++; hist[Math.min(255, L | 0)]++;
       if (L > 170) white++; if (L < 60) dark++;
-      if (ref) motion += Math.abs(L - ref[y * w + x]);
+      if (ref) motion += Math.abs(L - ref[q]);
     }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (x < x0 || x >= x1 || y < y0 || y >= y1) luma[y * w + x] = 0;   // 枠の外はマスクに出さない
     lumaRing.push({ t: now, luma: luma });
     while (lumaRing.length > 1 && now - lumaRing[0].t > MOTION_SPAN_MS * 2.5) lumaRing.shift();
     var o = otsu(hist, n);
@@ -253,10 +311,11 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   var an = { ema: null, n: 0, sum: 0, max: 0, skipped: 0, analyzed: 0 };
   function analyzeTimed(now) {
     var t = performance.now(), st = analyze(now), dt = performance.now() - t;
-    an.n++; an.sum += dt; if (dt > an.max) an.max = dt; an.ema = an.ema == null ? dt : an.ema * 0.9 + dt * 0.1; an.analyzed++;
+    noteTime(activePath, dt);
     return st;
   }
   function shouldSkip() {
+    if (benchmarking) return false;   // 計測中は間引かない
     var fi = R.camera.fps_setting ? 1000 / R.camera.fps_setting : 33;
     return an.ema != null && an.ema > fi * 0.6 && (frameCount % 2 === 1);
   }
@@ -265,13 +324,18 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     frameCount++;
     if (md && typeof md.captureTime === 'number') captureTimeSeen = true;
     lastFrameT = now;
-    if (shouldSkip()) an.skipped++; else { var st = analyzeTimed(now); if (listeners.frame) listeners.frame(now, st); }
+    if (activePath !== 'videoframe') { if (shouldSkip()) an.skipped++; else { var st = analyzeTimed(now); if (listeners.frame) listeners.frame(now, st); } }
     video.requestVideoFrameCallback(onFrame);
   }
   function rafLoop(now) {
     if (!stream) return;
-    if (video.readyState >= 2 && video.currentTime !== rafLoop.lastCT) { rafLoop.lastCT = video.currentTime; frameCount++; if (shouldSkip()) an.skipped++; else { var st = analyzeTimed(now); if (listeners.frame) listeners.frame(now, st); } }
+    if (video.readyState >= 2 && video.currentTime !== rafLoop.lastCT) { rafLoop.lastCT = video.currentTime; frameCount++; if (activePath !== 'videoframe') { if (shouldSkip()) an.skipped++; else { var st = analyzeTimed(now); if (listeners.frame) listeners.frame(now, st); } } }
     requestAnimationFrame(rafLoop);
+  }
+  function pathSummary() {
+    var o = {}; PATHS.forEach(function (p) { var s = pathStats[p]; o[p] = { n: s.n, ms_mean: s.n ? Math.round(s.sum / s.n * 100) / 100 : null, ms_max: Math.round(s.max * 10) / 10 }; });
+    o.videoframe.supported = vfSupported; o.videoframe.format = pathStats.videoframe.format; o.videoframe.error = pathStats.videoframe.error;
+    return o;
   }
   async function startCamera() {
     var base = { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } };
@@ -291,6 +355,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       cap_fps_max: cap && cap.frameRate ? cap.frameRate.max : null, cap_width_max: cap && cap.width ? cap.width.max : null, cap_height_max: cap && cap.height ? cap.height.max : null,
       cap_facing: cap && cap.facingMode ? cap.facingMode.join('/') : null };
     if (rvfcSupported) video.requestVideoFrameCallback(onFrame); else requestAnimationFrame(rafLoop);
+    if (vfSupported) vfLoop(tr);
   }
 
   // ---- 0 はじめに ----
@@ -331,11 +396,19 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   function level1() {
     var t0 = performance.now(), c0 = frameCount;
     $('#camInfo').textContent = 'カメラ：' + (R.camera.label || '（名前なし）') + '　' + R.camera.width + '×' + R.camera.height;
+    benchmarking = true; an.ema = null;
     (function tick() {
       var el = (performance.now() - t0) / 1000;
+      // 1 秒ごとに読み出し方を切り替えて計る（間引きは止める）。videoframe が使えない端末は canvas_cpu をもう一度
+      var want = el < 1 ? 'canvas_cpu' : el < 2 ? 'canvas_gpu' : (vfSupported && !pathStats.videoframe.error ? 'videoframe' : 'canvas_cpu');
+      if (want !== activePath) { activePath = want; an.ema = null; }
       $('#l1v').textContent = Math.min(3, el).toFixed(1) + ' / 3 びょう';
       setMeter('#m1', el / 3 * 100, false);
       if (el < 3) { requestAnimationFrame(tick); return; }
+      benchmarking = false;
+      var best = null; PATHS.forEach(function (p) { var s = pathStats[p]; if (s.n >= 5 && (p !== 'videoframe' || !pathStats.videoframe.error) && (best == null || s.sum / s.n < pathStats[best].sum / pathStats[best].n)) best = p; });
+      activePath = (forcedPath && (forcedPath !== 'videoframe' || (vfSupported && !pathStats.videoframe.error))) ? forcedPath : (best || 'canvas_cpu'); an.ema = null;
+      R.camera.analysis_paths = pathSummary(); R.camera.analysis_path = activePath; R.camera.analysis_path_forced = forcedPath;
       var fps = (frameCount - c0) / el;
       R.camera.fps_measured = Math.round(fps * 10) / 10;
       R.camera.capture_time = rvfcSupported ? captureTimeSeen : null;
@@ -370,30 +443,40 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   // ---- 3 しろい手 ----
   function level3() {
     var okSince = 0, done = false, last = null, t0 = performance.now();
+    // どの条件で止まっていたかの時間（重なりあり）と、2 回/秒の記録 [秒, 手 %, 手と布の差, くろ %, あかるさ]
+    var blk = { no_frame: 0, hand_small: 0, hand_large: 0, low_contrast: 0, not_dark: 0 }, lastTick = t0, trace = [], lastTrace = -1e9, firstOk = null;
+    function blkOut() { var o = {}; Object.keys(blk).forEach(function (k) { o[k] = Math.round(blk[k] * 10) / 10; }); return o; }
     maskCv = $('#mask'); maskCtx = maskCv.getContext('2d');
     listeners.frame = function (now, st) { last = st; };
     $('#btnSkip3').addEventListener('click', function () {
       if (done) return; done = true; listeners.frame = null; maskCtx = null;
       R.light = { mean: last ? Math.round(last.mean) : null, white_pct: last ? Math.round(last.white * 100) : null, dark_pct: last ? Math.round(last.dark * 100) : null, ok: false, skipped: true,
-        bright_pct: last ? Math.round(last.bright * 100) : null, contrast: last ? Math.round(last.contrast) : null, otsu_thr: last ? last.thr : null, hand_mean: last ? Math.round(last.bright_mean) : null, cloth_mean: last ? Math.round(last.dark_mean) : null };
+        bright_pct: last ? Math.round(last.bright * 100) : null, contrast: last ? Math.round(last.contrast) : null, otsu_thr: last ? last.thr : null, hand_mean: last ? Math.round(last.bright_mean) : null, cloth_mean: last ? Math.round(last.dark_mean) : null,
+        blocked_s: blkOut(), first_ok_s: firstOk, trace_2hz: trace };
       log('level3', R.light); flash(function () { show(4); level4(); });
     });
     (function tick() {
       if (done) return;
       var now = performance.now();
       if (now - t0 > 15000) $('#btnSkip3').hidden = false;   // 芽出し版だけ：15 秒できなければ記録して先へ進める
+      var dtb = (now - lastTick) / 1000; lastTick = now;
+      if (!last) blk.no_frame += dtb;
       if (last) {
         // 手：明るい側の山の割合が 5〜60% で、2 つの山の差が 40 以上（絶対の明るさではなく「布より明るいものがある」で見る）。布：輝度 60 未満が 30% 以上（これは絶対値）
         var w = last.bright * 100, d = last.dark * 100, c = last.contrast;
         var okW = w >= 5 && w <= 60 && c >= 40, okD = d >= 30, ok = okW && okD;   // 差 40：暗い箱の中の素手でも通るように（雑音だけだと 10〜15）
+        if (w < 5) blk.hand_small += dtb; if (w > 60) blk.hand_large += dtb; if (c < 40) blk.low_contrast += dtb; if (!okD) blk.not_dark += dtb;
+        if (ok && firstOk == null) firstOk = Math.round((now - t0) / 100) / 10;
+        if (now - lastTrace >= 500) { lastTrace = now; trace.push([Math.round((now - t0) / 100) / 10, Math.round(w), Math.round(c), Math.round(d), Math.round(last.mean)]); }
         setMeter('#m3w', w, okW); setMeter('#m3d', d, okD);
         $('#l3w').textContent = Math.round(w) + ' %'; $('#l3d').textContent = Math.round(d) + ' %';
-        $('#l3hint').textContent = 'あかるさ：' + Math.round(last.mean) + ' / 255　手と布の差：' + Math.round(c) + (last.mean < 25 ? '　くらすぎ。ライトを あててね' : '') + ((w < 5 || c < 40) ? '　手が みえない' : '') + (w > 60 ? '　しろすぎ。くろい布を しいてね' : '') + (!okD && w <= 60 ? '　くろい布が たりない' : '');
+        $('#l3hint').textContent = 'あかるさ：' + Math.round(last.mean) + ' / 255　手と布の差：' + Math.round(c) + (last.mean < 25 ? '　くらすぎ。ライトを あててね' : '') + ((w < 5 || c < 40) ? '　手が みえない（ちかづけてね）' : '') + (w > 60 ? '　手が ちかすぎ（すこし はなしてね）' : '') + (!okD && w <= 60 ? '　くろい布が みえない（布を ひろげてね）' : '');
         if (ok) { if (!okSince) okSince = now; } else okSince = 0;
         if (ok && now - okSince >= 1500) {
           done = true; listeners.frame = null; maskCtx = null;
           R.light = { mean: Math.round(last.mean), white_pct: Math.round(last.white * 100), dark_pct: Math.round(d), ok: true,
-            bright_pct: Math.round(w), contrast: Math.round(c), otsu_thr: last.thr, hand_mean: Math.round(last.bright_mean), cloth_mean: Math.round(last.dark_mean) };
+            bright_pct: Math.round(w), contrast: Math.round(c), otsu_thr: last.thr, hand_mean: Math.round(last.bright_mean), cloth_mean: Math.round(last.dark_mean),
+            blocked_s: blkOut(), first_ok_s: firstOk, trace_2hz: trace };
           log('level3', R.light); flash(function () { show(4); level4(); }); return;
         }
       }
@@ -435,6 +518,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       if (R.rhythm.ok) { setMeter('#m4', 100, true); flash(function () { show(5); level5(); }); }
       else {
         setMeter('#m4', R.rhythm.score, false); $('#rhyBtns').hidden = false;
+        try { $('#rhyBtns').scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) {}
         msg.textContent += (mapping === false && ph.swapped_ok) ? '　たかい音で ひらく、ひくい音で にぎる の じゅんばんが ぎゃく かも。もういちど' : '　もういちど やってみよう';
       }
     })();
@@ -545,6 +629,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     try { if (wake) wake.release(); } catch (e) {}
     R.camera.analysis_ms_mean = an.n ? Math.round(an.sum / an.n * 100) / 100 : null; R.camera.analysis_ms_max = Math.round(an.max * 10) / 10;
     R.camera.frames_analyzed = an.analyzed; R.camera.frames_skipped = an.skipped;
+    var cps = pathStats[R.camera.analysis_path]; if (cps && cps.n) { R.camera.chosen_path_ms_mean = Math.round(cps.sum / cps.n * 100) / 100; R.camera.chosen_path_ms_max = Math.round(cps.max * 10) / 10; }
     var st = {}; R.events.forEach(function (e) { if (e.type === 'stage') st[e.n] = e.t; });
     R.timing_s = {}; for (var k = 1; k <= 5; k++) if (st[k] != null && st[k + 1] != null) R.timing_s['level' + k] = Math.round((st[k + 1] - st[k]) / 100) / 10;
     R.timing_s.total = st[6] != null && st[0] != null ? Math.round((st[6] - st[0]) / 100) / 10 : null;
@@ -556,8 +641,10 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       ['コマごとの時刻', !rvfcSupported ? 'とれない（rVFC なし）' : (R.camera.capture_time ? 'とれる（captureTime）' : 'とれない（captureTime なし）')],
       ['たいら', R.flat.skipped ? 'とばした' + (R.flat.supported ? '' : '（センサーなし）') : R.flat.beta + '° / ' + R.flat.gamma + '°'],
       ['手', (R.light.skipped ? 'とばした：' : '') + '手 ' + R.light.bright_pct + ' %（差 ' + R.light.contrast + '）　くろ ' + R.light.dark_pct + ' %　あかるさ ' + R.light.mean],
+      ['手で とまった わけ', (function () { var b = R.light.blocked_s || {}, names = { hand_small: '手が ちいさい・みえない', hand_large: '手が おおきすぎ', low_contrast: '手と布の差が たりない', not_dark: '布が くろくない', no_frame: 'えいぞう なし' }; var parts = Object.keys(names).filter(function (k) { return b[k] >= 0.5; }).map(function (k) { return names[k] + ' ' + b[k] + 's'; }); return (parts.length ? parts.join('　') : 'なし') + '　はじめて OK まで ' + (R.light.first_ok_s != null ? R.light.first_ok_s + 's' : '—'); })()],
       ['リズム', R.rhythm.score + ' %（' + R.rhythm.peak_hz + ' Hz、' + R.rhythm.tries + ' 回目' + (R.rhythm.skipped ? '、とばした' : '') + '）' + (R.rhythm.phase && R.rhythm.phase.computable ? '　ひらく ' + Math.round(R.rhythm.phase.open_ok * 100) + ' %・にぎる ' + Math.round(R.rhythm.phase.close_ok * 100) + ' %' : '　開閉の区別なし')],
       ['解析の重さ', '1 コマ ' + R.camera.analysis_ms_mean + ' ms（最大 ' + R.camera.analysis_ms_max + '）　間引き ' + R.camera.frames_skipped + ' / ' + (R.camera.frames_analyzed + R.camera.frames_skipped) + '　実効 ' + R.rhythm.fps_effective + ' コマ/びょう'],
+      ['読み出し方', (function () { var ps = R.camera.analysis_paths || {}; return PATHS.map(function (p) { var s = ps[p] || {}; return p + ' ' + (s.ms_mean != null ? s.ms_mean + ' ms' : (p === 'videoframe' && !s.supported ? 'なし' : '—')); }).join('　') + '　→ ' + R.camera.analysis_path; })()],
       ['とまる', (R.still.skipped ? 'とばした' : 'OK') + '（うごき ' + R.still.motion + '、いちばん小さい ' + R.still.min_motion + '、しきい値 ' + R.still.threshold + '）'],
       ['かかった時間', [1, 2, 3, 4, 5].map(function (k) { return 'L' + k + ' ' + (R.timing_s['level' + k] != null ? R.timing_s['level' + k] : '?') + 's'; }).join('　') + '　ぜんぶ ' + R.timing_s.total + 's']
     ];
