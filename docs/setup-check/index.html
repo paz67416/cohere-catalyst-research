@@ -48,6 +48,10 @@ button:focus-visible { outline: 3px solid var(--meter); outline-offset: 2px; }
 .cam.small { aspect-ratio: 16 / 7; }
 .cam.portrait { aspect-ratio: 3 / 4; width: min(100%, 52vh * 0.75); margin: 0 auto; }   /* カメラが縦長（スマホを平らに置いたとき）は縦長の枠で、手が枠から出にくいように */
 .cam .mask.motion { mix-blend-mode: normal; }
+.guide { display: flex; justify-content: center; gap: 28px; font-size: 44px; line-height: 1; }
+.guide span { opacity: .25; transition: opacity .08s, transform .08s; }
+.guide span.on { opacity: 1; transform: scale(1.25); }
+.guide small { display: block; font-size: 13px; color: var(--muted); text-align: center; margin-top: 4px; font-weight: 800; }
 .level { position: relative; width: 160px; height: 160px; margin: 0 auto; border-radius: 50%; background: var(--meter-bg); border: 3px solid var(--line); }
 .level .ring { position: absolute; inset: 50px; border-radius: 50%; border: 3px dashed var(--muted); }
 .level .dot { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: var(--accent); transition: transform .08s linear; }
@@ -118,11 +122,12 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   <!-- 4 リズム -->
   <section class="card" id="s4" hidden>
     <h1>音に あわせて 手を にぎって ひらいて</h1>
-    <p class="sub">たかい音で ひらく、ひくい音で にぎる。手は わくの中で。12びょう つづけてね</p>
+    <p class="sub">たかい音で ひらく、ひくい音で にぎる。手は わくの中で。はじめの 4つの音は きくだけ、そのあと 12びょう つづけてね</p>
+    <div class="guide" id="guide"><span id="gOpen">✋<small>たかい音</small></span><span id="gClose">✊<small>ひくい音</small></span></div>
+    <div class="label"><span id="l4t">きいて…</span><span id="l4m"></span></div>
+    <div class="meter" id="m4"><span></span></div>
     <div class="cam"><div class="roi"></div></div>
     <canvas class="spark" id="spark" width="600" height="60"></canvas>
-    <div class="label"><span id="l4t">0 / 12 びょう</span><span id="l4m">うごき：0</span></div>
-    <div class="meter" id="m4"><span></span></div>
     <div class="hint" id="l4hint"></div>
     <div class="msg" id="rhyMsg" hidden></div>
     <div class="row" id="rhyBtns" hidden><button class="second" id="btnRetry4">もういちど</button><button id="btnNext4">つぎへ</button></div>
@@ -156,7 +161,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 <script>
 (function () {
   'use strict';
-  var VERSION = 'setup-check 0.1.7 (2026-10-04)';
+  var VERSION = 'setup-check 0.1.8 (2026-10-04)';
   var $ = function (s) { return document.querySelector(s); };
   var R = { version: VERSION, nickname: null, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
     screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio, inner_w: window.innerWidth, inner_h: window.innerHeight },
@@ -202,7 +207,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   // 拍の予定時刻を performance.now() の尺度でも記録する（動きの系列と位相を比べられるように）。音の出口の遅れは baseLatency/outputLatency を別に記録
   function metroStart(t0) { metro.beat = 0; metro.log = []; metro.t0 = t0; metro.perfOffset = performance.now() - actx.currentTime * 1000; metro.next = actx.currentTime + 0.05; metroTick(); metro.timer = setInterval(metroTick, 25); }
   function metroTick() {
-    while (metro.next < actx.currentTime + 0.12 && metro.beat < 20) {   // 12 秒 ＝ 20 拍
+    while (metro.next < actx.currentTime + 0.12 && metro.beat < 24) {   // 聞くだけ 4 拍 ＋ 12 秒 ＝ 20 拍
       var hi = metro.beat % 2 === 0;
       tone(metro.next, hi ? 880 : 440, 60);
       metro.log.push([Math.round(metro.perfOffset + metro.next * 1000 - metro.t0), hi ? 'H' : 'L']);
@@ -519,26 +524,31 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   function level4() {
     tries4++;
     $('#rhyMsg').hidden = true; $('#rhyBtns').hidden = true;
-    var series = [], t0 = performance.now(), done = false, sp = $('#spark'), sctx = sp.getContext('2d');
+    // はじめの 4 拍（2.4 秒）は聞くだけ。判定の 12 秒はそのあと（t0）。拍の時刻は t0 基準なので、聞くだけの拍は負の時刻になる
+    var LEAD = 2400, tLead = performance.now(), t0 = tLead + LEAD, series = [], done = false, sp = $('#spark'), sctx = sp.getContext('2d'), lastContrast = null;
     metroStart(t0);
-    listeners.frame = function (now, st) { series.push([now - t0, st.motion, st.white, st.contrast]); };
+    // 動き量・手の面積（明るい側の山の割合。素手や暗い光でも使える）・輝度 170 超の割合（参考）
+    listeners.frame = function (now, st) { lastContrast = st.contrast; if (now >= t0) series.push([now - t0, st.motion, st.bright, st.white]); };
     (function tick() {
-      var el = (performance.now() - t0) / 1000;
+      var now = performance.now(), el = (now - t0) / 1000;
+      var beatIdx = Math.floor((now - (t0 - LEAD + 50)) / 600), hi = beatIdx >= 0 && beatIdx % 2 === 0, lo = beatIdx >= 0 && beatIdx % 2 === 1;
+      $('#gOpen').classList.toggle('on', hi); $('#gClose').classList.toggle('on', lo);
+      if (el < 0) { $('#l4t').textContent = 'きいて… ' + Math.max(1, 4 - Math.max(0, beatIdx)); $('#l4m').textContent = ''; setMeter('#m4', 0, false); requestAnimationFrame(tick); return; }
       $('#l4t').textContent = Math.min(12, el).toFixed(1) + ' / 12 びょう';
-      var m = series.length ? series[series.length - 1][1] : 0, lst = series.length ? series[series.length - 1][3] : null;
+      var m = series.length ? series[series.length - 1][1] : 0;
       $('#l4m').textContent = 'うごき：' + m.toFixed(1);
-      $('#l4hint').textContent = (lst != null && lst < 40) ? '手が わくの中に みえないよ。わくの中で にぎって ひらいて' : '';
+      $('#l4hint').textContent = (lastContrast != null && lastContrast < 40) ? '手が わくの中に みえないよ。わくの中で にぎって ひらいて' : '';
       setMeter('#m4', el / 12 * 100, false);
       drawSpark(sctx, sp, series, 12000);
       if (el < 12) { requestAnimationFrame(tick); return; }
       metroStop(); listeners.frame = null;
-      var a = rhythmScore(series), ph = phaseScore(a.white, a.start, metro.log);
+      var a = rhythmScore(series), ph = phaseScore(a.hand, a.start, metro.log);
       var periodic = a.score >= 0.25, mapping = ph && ph.computable ? ph.ok : null;
       R.rhythm = { score: Math.round(a.score * 100), peak_hz: a.peak, beat_hz_power: a.pBeat, cycle_hz_power: a.pCycle, samples: series.length, fps_effective: Math.round(series.length / 12 * 10) / 10, tries: tries4,
         periodic_ok: periodic, mapping_ok: mapping, phase: ph, ok: periodic && mapping !== false,
-        motion_p5: a.p5,                       // 動き量の下位 5%（拍の合間の静けさ。とまる のしきい値に使う）
-        series_start_ms: a.start, series_20hz: a.series, white_20hz: a.white,   // 2 秒目以降の動き量と白の割合（20 Hz に再標本化。あとで手元で解析できるように）
-        beats: metro.log.slice(),              // 拍の予定時刻（レベル開始からの ms、H=高い音=ひらく、L=低い音=にぎる）
+        motion_p5: a.p5, motion_median: a.median,   // 動き量の下位 5% と中央値（とまる のしきい値に使う）
+        series_start_ms: a.start, series_20hz: a.series, hand_20hz: a.hand, white_20hz: a.white,   // 2 秒目以降の動き量・手の面積（%）・輝度 170 超（%）（20 Hz に再標本化。位相判定は手の面積で）
+        beats: metro.log.slice(), lead_in_beats: 4,   // 拍の予定時刻（判定開始からの ms。はじめの 4 拍は負。H=高い音=ひらく、L=低い音=にぎる）
         audio_base_latency_ms: actx.baseLatency != null ? Math.round(actx.baseLatency * 1000) : null,
         audio_output_latency_ms: actx.outputLatency != null ? Math.round(actx.outputLatency * 1000) : null };
       log('level4', R.rhythm);
@@ -567,18 +577,19 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   // 動き量の時系列 → 20 Hz に再標本化 → 0.3〜3 Hz のスペクトル → 1.667 Hz（拍）と 0.833 Hz（開閉の周期）の割合
   function rhythmScore(series) {
     var pts = series.filter(function (p) { return p[0] >= 2000; });
-    if (pts.length < 40) return { score: 0, peak: 0, pBeat: 0, pCycle: 0, series: [], white: [], start: null, p5: null };
-    var fs = 20, t0 = pts[0][0], t1 = pts[pts.length - 1][0], N = Math.floor((t1 - t0) / 1000 * fs), xs = new Float32Array(N), j = 0, raw = [], white = [];
-    var hasWhite = typeof pts[0][2] === 'number';
+    if (pts.length < 40) return { score: 0, peak: 0, pBeat: 0, pCycle: 0, series: [], hand: [], white: [], start: null, p5: null, median: null };
+    var fs = 20, t0 = pts[0][0], t1 = pts[pts.length - 1][0], N = Math.floor((t1 - t0) / 1000 * fs), xs = new Float32Array(N), j = 0, raw = [], hand = [], white = [];
+    var hasHand = typeof pts[0][2] === 'number', hasWhite = typeof pts[0][3] === 'number';
     for (var i = 0; i < N; i++) {
       var t = t0 + i * 1000 / fs;
       while (j < pts.length - 2 && pts[j + 1][0] < t) j++;
       var a = pts[j], b = pts[j + 1], f = Math.max(0, Math.min(1, (t - a[0]) / Math.max(1, b[0] - a[0])));
       xs[i] = a[1] + (b[1] - a[1]) * f;
       raw.push(Math.round(xs[i] * 10) / 10);
-      if (hasWhite) white.push(Math.round((a[2] + (b[2] - a[2]) * f) * 1000) / 10);   // 白の割合（%）
+      if (hasHand) hand.push(Math.round((a[2] + (b[2] - a[2]) * f) * 1000) / 10);     // 手の面積（%）
+      if (hasWhite) white.push(Math.round((a[3] + (b[3] - a[3]) * f) * 1000) / 10);   // 輝度 170 超の割合（%）
     }
-    var sorted = Array.prototype.slice.call(xs).sort(function (p, q) { return p - q; }), p5 = Math.round(sorted[Math.floor(N * 0.05)] * 100) / 100;
+    var sorted = Array.prototype.slice.call(xs).sort(function (p, q) { return p - q; }), p5 = Math.round(sorted[Math.floor(N * 0.05)] * 100) / 100, median = Math.round(sorted[Math.floor(N / 2)] * 100) / 100;
     var mean = 0; for (i = 0; i < N; i++) mean += xs[i]; mean /= N;
     for (i = 0; i < N; i++) xs[i] = (xs[i] - mean) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1)));
     var total = 0, pBeat = 0, pCycle = 0, peak = 0, peakP = 0;
@@ -591,7 +602,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       if (P > peakP) { peakP = P; peak = fr; }
     }
     return { score: total ? (pBeat + pCycle) / total : 0, peak: Math.round(peak * 100) / 100, pBeat: Math.round(pBeat / (total || 1) * 100), pCycle: Math.round(pCycle / (total || 1) * 100),
-      series: raw, white: white, start: Math.round(t0), p5: p5 };
+      series: raw, hand: hand, white: white, start: Math.round(t0), p5: p5, median: median };
   }
 
   // 白の割合（20 Hz）から「ひらいた」「にぎった」の時刻を取り、直前の高い音／低い音からの遅れを見る。
@@ -630,21 +641,25 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 
   // ---- 5 とまる：3 秒 ----
   function level5() {
-    // しきい値：リズムのときの「拍の合間の静けさ」（動き量の下位 5%）× 1.5。ただし 2.0〜4.0 の範囲。カメラの雑音の床が端末ごとに違うため
-    var p5 = R.rhythm && typeof R.rhythm.motion_p5 === 'number' ? R.rhythm.motion_p5 : null;
-    var THR = p5 == null ? 2.0 : Math.min(4.0, Math.max(2.0, Math.round(p5 * 1.5 * 100) / 100));
-    var stillSince = 0, done = false, last = null, recent = [], minM = Infinity, t0 = performance.now(), frames = 0, trace = [], lastTrace = -1e9, lastSt = null;
+    // しきい値：その人がリズムで動いていたときの動き量の中央値の半分（4.0〜10.0 に制限。リズムをとばした・測れないときは 4.0）。
+    // 「止まった」＝自分が動いていたときの半分以下、という相対の定義。0.1.7 までは拍の合間の静けさ × 1.5（上限 4.0）で、合間に止まらない人は上限に当たっていた
+    var medR = R.rhythm && typeof R.rhythm.motion_median === 'number' ? R.rhythm.motion_median : null;
+    var THR = medR == null ? 4.0 : Math.min(10.0, Math.max(4.0, Math.round(medR * 0.5 * 100) / 100));
+    var done = false, last = null, hist = [], smooth = [], minM = Infinity, t0 = performance.now(), frames = 0, trace = [], lastTrace = -1e9, lastSt = null, below = 0, span = 0;
     maskCv = $('#mask5'); maskCtx = maskCv.getContext('2d'); maskMode = 'motion';
-    function median5() { var a = recent.slice().sort(function (p, q) { return p - q; }); return a[Math.floor(a.length / 2)]; }
     listeners.frame = function (now, st) {
-      frames++; recent.push(st.motion); if (recent.length > 5) recent.shift(); lastSt = st;
-      last = median5();   // 直近 5 コマの中央値（1 コマだけの雑音で数えなおしにならないように）
+      frames++; lastSt = st;
+      hist.push([now, st.motion]); while (hist.length && now - hist[0][0] > 500) hist.shift();
+      var a = hist.map(function (h) { return h[1]; }).sort(function (p, q) { return p - q; }); last = a[Math.floor(a.length / 2)];   // 直近 0.5 秒の中央値
+      smooth.push([now, last]); while (smooth.length && now - smooth[0][0] > 3000) smooth.shift();
+      var nb = 0; for (var i = 0; i < smooth.length; i++) if (smooth[i][1] < THR) nb++;
+      below = smooth.length ? nb / smooth.length : 0; span = smooth.length ? now - smooth[0][0] : 0;   // 直近 3 秒のうち、しきい値未満だった割合
       if (now - t0 > 500 && last < minM) minM = last;
       if (now - lastTrace >= 500) { lastTrace = now; trace.push([Math.round((now - t0) / 100) / 10, Math.round(last * 10) / 10, Math.round(st.gshift * 10) / 10, Math.round(st.mean)]); }   // [秒, 動き, 全体の明暗の変化, あかるさ]
     };
     function result(ok) {
       maskCtx = null;
-      return { ok: ok, skipped: !ok, threshold: THR, motion: last == null ? null : Math.round(last * 10) / 10, min_motion: isFinite(minM) ? Math.round(minM * 100) / 100 : null, frames: frames, fps_effective: Math.round(frames / ((performance.now() - t0) / 1000) * 10) / 10, trace_2hz: trace };
+      return { ok: ok, skipped: !ok, threshold: THR, rule: '直近 3 秒の 90% 以上が しきい値未満（0.5 秒の中央値）', motion: last == null ? null : Math.round(last * 10) / 10, min_motion: isFinite(minM) ? Math.round(minM * 100) / 100 : null, frames: frames, fps_effective: Math.round(frames / ((performance.now() - t0) / 1000) * 10) / 10, trace_2hz: trace };
     }
     $('#btnSkip5').addEventListener('click', function () {
       if (done) return; done = true; listeners.frame = null;
@@ -655,13 +670,12 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       var now = performance.now();
       var ok = last != null && last < THR;   // コマが来ていないうちは「止まっている」とみなさない
       $('#l5m').textContent = 'うごき：' + (last == null ? '—' : last.toFixed(1));
-      if (ok) { if (!stillSince) stillSince = now; } else stillSince = 0;
-      var el = stillSince ? (now - stillSince) / 1000 : 0;
-      $('#l5t').textContent = Math.min(3, el).toFixed(1) + ' / 3 びょう';
+      var el = last == null ? 0 : Math.min(3, below * Math.min(3000, span) / 1000);   // 「止まっていた時間」＝直近 3 秒のうち、しきい値未満だった分
+      $('#l5t').textContent = el.toFixed(1) + ' / 3 びょう';
       setMeter('#m5', el / 3 * 100, ok);
       if (now - t0 > 3000 && now - t0 <= 8000 && last != null && last >= THR && last < 12) $('#l5hint').textContent = 'まだ すこし うごいているよ。手を 布に のせて ちからを ぬいてね';   // 宙に浮かせた手は 4〜7 くらい揺れる（布に置くと 1 前後）
       if (now - t0 > 8000) { $('#btnSkip5').hidden = false; $('#l5hint').textContent = 'いちばん しずかな ときの うごき：' + (isFinite(minM) ? minM.toFixed(2) : '—') + '（' + THR.toFixed(1) + ' より 小さく なると クリア）'; }
-      if (el >= 3) { done = true; listeners.frame = null; R.still = result(true); log('level5', R.still); flash(function () { finish(); }); return; }
+      if (span >= 3000 && below >= 0.9) { done = true; listeners.frame = null; R.still = result(true); log('level5', R.still); flash(function () { finish(); }); return; }
       requestAnimationFrame(tick);
     })();
   }
