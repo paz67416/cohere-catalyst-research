@@ -46,6 +46,8 @@ button:focus-visible { outline: 3px solid var(--meter); outline-offset: 2px; }
 .cam .roi { position: absolute; inset: 10%; border: 3px solid #fff; border-radius: 10px; opacity: .8; }
 .cam .mask { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
 .cam.small { aspect-ratio: 16 / 7; }
+.cam.portrait { aspect-ratio: 3 / 4; width: min(100%, 52vh * 0.75); margin: 0 auto; }   /* カメラが縦長（スマホを平らに置いたとき）は縦長の枠で、手が枠から出にくいように */
+.cam .mask.motion { mix-blend-mode: normal; }
 .level { position: relative; width: 160px; height: 160px; margin: 0 auto; border-radius: 50%; background: var(--meter-bg); border: 3px solid var(--line); }
 .level .ring { position: absolute; inset: 50px; border-radius: 50%; border: 3px dashed var(--muted); }
 .level .dot { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: var(--accent); transition: transform .08s linear; }
@@ -75,6 +77,9 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     <p class="sub">スマホのカメラで、じっけんのじゅんびが できているかを 5つのレベルで しらべます。だいたい 2ふんです。</p>
     <p class="sub">カメラとセンサーを つかいます。えいぞうは ほぞんしません。</p>
     <div class="msg" id="envNote"></div>
+    <label class="label" for="nick"><span>ニックネーム（本名は 入れないでね）</span></label>
+    <input id="nick" type="text" maxlength="20" autocomplete="off" placeholder="れい：たま" style="font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--fg); width: 100%;">
+    <div class="hint" id="nickHint" hidden>ニックネームを 入れてから はじめてね</div>
     <button id="btnStart">はじめる</button>
   </section>
 
@@ -118,6 +123,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     <canvas class="spark" id="spark" width="600" height="60"></canvas>
     <div class="label"><span id="l4t">0 / 12 びょう</span><span id="l4m">うごき：0</span></div>
     <div class="meter" id="m4"><span></span></div>
+    <div class="hint" id="l4hint"></div>
     <div class="msg" id="rhyMsg" hidden></div>
     <div class="row" id="rhyBtns" hidden><button class="second" id="btnRetry4">もういちど</button><button id="btnNext4">つぎへ</button></div>
   </section>
@@ -125,8 +131,8 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   <!-- 5 とまる -->
   <section class="card" id="s5" hidden>
     <h1>手を とめて 3びょう</h1>
-    <p class="sub">うごかさないでね</p>
-    <div class="cam"><div class="roi"></div></div>
+    <p class="sub">うごかさないでね。あかく なった ところが「うごき」です</p>
+    <div class="cam"><canvas class="mask motion" id="mask5" width="96" height="72"></canvas><div class="roi"></div></div>
     <div class="label"><span id="l5t">0 / 3 びょう</span><span id="l5m">うごき：0</span></div>
     <div class="meter" id="m5"><span></span></div>
     <div class="hint" id="l5hint"></div>
@@ -150,9 +156,9 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 <script>
 (function () {
   'use strict';
-  var VERSION = 'setup-check 0.1.5 (2026-10-04)';
+  var VERSION = 'setup-check 0.1.6 (2026-10-04)';
   var $ = function (s) { return document.querySelector(s); };
-  var R = { version: VERSION, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
+  var R = { version: VERSION, nickname: null, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
     screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio, inner_w: window.innerWidth, inner_h: window.innerHeight },
     camera: {}, flat: {}, light: {}, rhythm: {}, still: {}, events: [] };
   var LEVELS = ['はじめに', 'レベル 1 / 5　カメラ', 'レベル 2 / 5　たいら', 'レベル 3 / 5　手', 'レベル 4 / 5　リズム', 'レベル 5 / 5　とまる', 'けっか'];
@@ -206,7 +212,14 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
   function metroStop() { if (metro.timer) clearInterval(metro.timer); metro.timer = null; }
 
   // ---- カメラとコマの解析 ----
-  var maskCv = null, maskCtx = null, maskImg = null;   // レベル 3 で「手」と見ている画素を緑で重ねる
+  var maskCv = null, maskCtx = null, maskImg = null, maskMode = 'hand';   // レベル 3 は「手」を緑で、レベル 5 は「うごき」を赤で重ねる
+  function setAnalysisSize(portrait) {   // カメラが縦長なら解析も縦長（72×96）。枠も縦長にする
+    var W = portrait ? 72 : 96, H = portrait ? 96 : 72;
+    ac.width = W; ac.height = H; ac2.width = W; ac2.height = H; maskImg = null;
+    ['#mask', '#mask5'].forEach(function (id) { var c = $(id); if (c) { c.width = W; c.height = H; } });
+    Array.prototype.forEach.call(document.querySelectorAll('.cam'), function (c) { c.classList.toggle('portrait', !!portrait); });
+    R.camera.portrait = !!portrait; R.camera.analysis_w = W; R.camera.analysis_h = H;
+  }
   // 画素の読み出し方は 3 通り。レベル 1 の 3 秒で 1 秒ずつ試し、いちばん速いものを以後使う（スマホでは読み出しが 1 コマ 30 ms かかることがあった）
   //   canvas_cpu : willReadFrequently の canvas に drawImage → getImageData（0.1.4 までの方法）
   //   canvas_gpu : ふつうの canvas に drawImage → getImageData（小さい領域の読み戻し）
@@ -274,24 +287,31 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     var ref = null;   // 約 100 ms 前のコマ（なければいちばん古いもの）
     for (var k = lumaRing.length - 1; k >= 0; k--) { if (now - lumaRing[k].t >= MOTION_SPAN_MS) { ref = lumaRing[k].luma; break; } }
     if (!ref && lumaRing.length) ref = lumaRing[0].luma;
-    var n = 0, sum = 0, white = 0, dark = 0, motion = 0, hist = new Uint32Array(256);
+    var n = 0, sum = 0, white = 0, dark = 0, motion = 0, hist = new Uint32Array(256), dsum = 0, diff = ref ? new Float32Array(w * h) : null;
     for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) {
       var q = y * w + x, L = luma[q];
       sum += L; n++; hist[Math.min(255, L | 0)]++;
       if (L > 170) white++; if (L < 60) dark++;
-      if (ref) motion += Math.abs(L - ref[q]);
+      if (ref) { var dq = L - ref[q]; diff[q] = dq; dsum += dq; }
     }
+    // 動き量：約 100 ms 前との差から「画面全体の明るさの変化」（露出の自動調整やちらつき）を引いた残り。手の動きは残り、全体の明暗は消える
+    var gshift = ref ? dsum / n : 0;
+    if (ref) for (y = y0; y < y1; y++) for (x = x0; x < x1; x++) motion += Math.abs(diff[y * w + x] - gshift);
     for (y = 0; y < h; y++) for (x = 0; x < w; x++) if (x < x0 || x >= x1 || y < y0 || y >= y1) luma[y * w + x] = 0;   // 枠の外はマスクに出さない
     lumaRing.push({ t: now, luma: luma });
     while (lumaRing.length > 1 && now - lumaRing[0].t > MOTION_SPAN_MS * 2.5) lumaRing.shift();
     var o = otsu(hist, n);
-    if (maskCtx) {   // 緑のマスク（明るい側の山＝手）
-      if (!maskImg) maskImg = maskCtx.createImageData(w, h);
+    if (maskCtx) {
+      if (!maskImg || maskImg.width !== w || maskImg.height !== h) maskImg = maskCtx.createImageData(w, h);
       var md = maskImg.data;
-      for (var q = 0; q < w * h; q++) { var on = luma[q] > o.thr && o.contrast >= 40; md[q * 4] = 40; md[q * 4 + 1] = 220; md[q * 4 + 2] = 90; md[q * 4 + 3] = on ? 150 : 0; }
+      if (maskMode === 'motion') {   // 赤：約 100 ms 前から変わった画素（全体の明暗の変化は除く）
+        for (var q = 0; q < w * h; q++) { var a = diff ? Math.abs(diff[q] - gshift) : 0; var al = Math.max(0, Math.min(180, (a - 4) * 25)); md[q * 4] = 235; md[q * 4 + 1] = 60; md[q * 4 + 2] = 60; md[q * 4 + 3] = luma[q] ? al : 0; }
+      } else {   // 緑：明るい側の山＝手
+        for (q = 0; q < w * h; q++) { var on = luma[q] > o.thr && o.contrast >= 40; md[q * 4] = 40; md[q * 4 + 1] = 220; md[q * 4 + 2] = 90; md[q * 4 + 3] = on ? 150 : 0; }
+      }
       maskCtx.putImageData(maskImg, 0, 0);
     }
-    return { mean: sum / n, white: white / n, dark: dark / n, motion: ref ? motion / n : 0, bright: o.bright, contrast: o.contrast, thr: o.thr, bright_mean: o.mb, dark_mean: o.md };
+    return { mean: sum / n, white: white / n, dark: dark / n, motion: ref ? motion / n : 0, gshift: gshift, bright: o.bright, contrast: o.contrast, thr: o.thr, bright_mean: o.mb, dark_mean: o.md };
   }
   // 明るさのヒストグラムを 2 つの山に分ける（大津の方法）。「手」は明るい側の割合、「手と布の差」は 2 つの山の平均の差。露出が端末ごとに違っても使えるように
   function otsu(hist, n) {
@@ -349,11 +369,13 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     }
     video.srcObject = stream; await video.play();
     var tr = stream.getVideoTracks()[0], s = tr.getSettings(), cap = null;
+    var vw0 = video.videoWidth || s.width || 0, vh0 = video.videoHeight || s.height || 0;
     try { cap = tr.getCapabilities ? tr.getCapabilities() : null; } catch (e) {}
     R.camera = { label: tr.label, width: s.width, height: s.height, fps_setting: s.frameRate, facing: s.facingMode || null, rvfc: rvfcSupported, capture_time: null,
       fps_request: fpsRequest, fps_fallback_error: fpsFallback,
       cap_fps_max: cap && cap.frameRate ? cap.frameRate.max : null, cap_width_max: cap && cap.width ? cap.width.max : null, cap_height_max: cap && cap.height ? cap.height.max : null,
       cap_facing: cap && cap.facingMode ? cap.facingMode.join('/') : null };
+    setAnalysisSize(vh0 > vw0);   // R.camera を作ったあとで（portrait・解析の大きさを書き込む）
     if (rvfcSupported) video.requestVideoFrameCallback(onFrame); else requestAnimationFrame(rafLoop);
     if (vfSupported) vfLoop(tr);
   }
@@ -367,7 +389,12 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     var e = $('#envNote'); if (notes.length) e.textContent = notes.join(' '); else e.hidden = true;
   })();
 
+  try { var savedNick = localStorage.getItem('setup_check_nick'); if (savedNick) $('#nick').value = savedNick; } catch (e) {}
   $('#btnStart').addEventListener('click', async function () {
+    var nick = $('#nick').value.trim();
+    if (!nick) { $('#nickHint').hidden = false; $('#nick').focus(); return; }
+    $('#nickHint').hidden = true; R.nickname = nick.slice(0, 20);
+    try { localStorage.setItem('setup_check_nick', R.nickname); } catch (e) {}
     $('#btnStart').disabled = true;
     R.started_at = new Date().toISOString();
     try {
@@ -446,7 +473,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     // どの条件で止まっていたかの時間（重なりあり）と、2 回/秒の記録 [秒, 手 %, 手と布の差, くろ %, あかるさ]
     var blk = { no_frame: 0, hand_small: 0, hand_large: 0, low_contrast: 0, not_dark: 0 }, lastTick = t0, trace = [], lastTrace = -1e9, firstOk = null;
     function blkOut() { var o = {}; Object.keys(blk).forEach(function (k) { o[k] = Math.round(blk[k] * 10) / 10; }); return o; }
-    maskCv = $('#mask'); maskCtx = maskCv.getContext('2d');
+    maskCv = $('#mask'); maskCtx = maskCv.getContext('2d'); maskMode = 'hand';
     listeners.frame = function (now, st) { last = st; };
     $('#btnSkip3').addEventListener('click', function () {
       if (done) return; done = true; listeners.frame = null; maskCtx = null;
@@ -491,12 +518,13 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     $('#rhyMsg').hidden = true; $('#rhyBtns').hidden = true;
     var series = [], t0 = performance.now(), done = false, sp = $('#spark'), sctx = sp.getContext('2d');
     metroStart(t0);
-    listeners.frame = function (now, st) { series.push([now - t0, st.motion, st.white]); };
+    listeners.frame = function (now, st) { series.push([now - t0, st.motion, st.white, st.contrast]); };
     (function tick() {
       var el = (performance.now() - t0) / 1000;
       $('#l4t').textContent = Math.min(12, el).toFixed(1) + ' / 12 びょう';
-      var m = series.length ? series[series.length - 1][1] : 0;
+      var m = series.length ? series[series.length - 1][1] : 0, lst = series.length ? series[series.length - 1][3] : null;
       $('#l4m').textContent = 'うごき：' + m.toFixed(1);
+      $('#l4hint').textContent = (lst != null && lst < 40) ? '手が わくの中に みえないよ。わくの中で にぎって ひらいて' : '';
       setMeter('#m4', el / 12 * 100, false);
       drawSpark(sctx, sp, series, 12000);
       if (el < 12) { requestAnimationFrame(tick); return; }
@@ -569,10 +597,20 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     if (!white || white.length < 40 || startMs == null) return null;
     var sorted = white.slice().sort(function (p, q) { return p - q; }), p10 = sorted[Math.floor(white.length * 0.1)], p90 = sorted[Math.floor(white.length * 0.9)];
     if (p90 - p10 < 3) return { computable: false, swing: Math.round((p90 - p10) * 10) / 10 };
-    var thr = (p10 + p90) / 2, state = white[0] > thr, opens = [], closes = [];
-    for (var i = 1; i < white.length; i++) {
-      var st = white[i] > thr; if (st === state) continue;
-      var agree = true; for (var k = 1; k <= 2; k++) if (i + k < white.length && (white[i + k] > thr) !== st) agree = false;   // 3 点つづけて変わったときだけ
+    // 前後 0.75 秒の最小・最大で正規化して、0.6 を超えたら「ひらいた」、0.4 を下回ったら「にぎった」（ヒステリシス）。手の大きさが周期ごとに違っても拾えるように
+    var W = 15, n = white.length, nrm = new Float32Array(n), valid = new Uint8Array(n);
+    for (var i = 0; i < n; i++) {
+      var lo = Infinity, hi = -Infinity;
+      for (var k = Math.max(0, i - W); k <= Math.min(n - 1, i + W); k++) { if (white[k] < lo) lo = white[k]; if (white[k] > hi) hi = white[k]; }
+      if (hi - lo >= 3) { nrm[i] = (white[i] - lo) / (hi - lo); valid[i] = 1; }
+    }
+    var state = null, opens = [], closes = [];
+    for (i = 0; i < n; i++) {
+      if (!valid[i]) continue;
+      var st = state; if (nrm[i] >= 0.6) st = true; else if (nrm[i] <= 0.4) st = false;
+      if (state == null) { state = st; continue; }
+      if (st == null || st === state) continue;
+      var agree = true; for (k = 1; k <= 2; k++) if (i + k < n && valid[i + k] && (nrm[i + k] >= 0.5) !== st) agree = false;   // 3 点つづけて同じ側のときだけ
       if (!agree) continue;
       var t = startMs + i * 50; if (st) opens.push(t); else closes.push(t); state = st;
     }
@@ -592,15 +630,18 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     // しきい値：リズムのときの「拍の合間の静けさ」（動き量の下位 5%）× 1.5。ただし 2.0〜4.0 の範囲。カメラの雑音の床が端末ごとに違うため
     var p5 = R.rhythm && typeof R.rhythm.motion_p5 === 'number' ? R.rhythm.motion_p5 : null;
     var THR = p5 == null ? 2.0 : Math.min(4.0, Math.max(2.0, Math.round(p5 * 1.5 * 100) / 100));
-    var stillSince = 0, done = false, last = null, recent = [], minM = Infinity, t0 = performance.now(), frames = 0;
+    var stillSince = 0, done = false, last = null, recent = [], minM = Infinity, t0 = performance.now(), frames = 0, trace = [], lastTrace = -1e9, lastSt = null;
+    maskCv = $('#mask5'); maskCtx = maskCv.getContext('2d'); maskMode = 'motion';
     function median5() { var a = recent.slice().sort(function (p, q) { return p - q; }); return a[Math.floor(a.length / 2)]; }
     listeners.frame = function (now, st) {
-      frames++; recent.push(st.motion); if (recent.length > 5) recent.shift();
+      frames++; recent.push(st.motion); if (recent.length > 5) recent.shift(); lastSt = st;
       last = median5();   // 直近 5 コマの中央値（1 コマだけの雑音で数えなおしにならないように）
       if (now - t0 > 500 && last < minM) minM = last;
+      if (now - lastTrace >= 500) { lastTrace = now; trace.push([Math.round((now - t0) / 100) / 10, Math.round(last * 10) / 10, Math.round(st.gshift * 10) / 10, Math.round(st.mean)]); }   // [秒, 動き, 全体の明暗の変化, あかるさ]
     };
     function result(ok) {
-      return { ok: ok, skipped: !ok, threshold: THR, motion: last == null ? null : Math.round(last * 10) / 10, min_motion: isFinite(minM) ? Math.round(minM * 100) / 100 : null, frames: frames, fps_effective: Math.round(frames / ((performance.now() - t0) / 1000) * 10) / 10 };
+      maskCtx = null;
+      return { ok: ok, skipped: !ok, threshold: THR, motion: last == null ? null : Math.round(last * 10) / 10, min_motion: isFinite(minM) ? Math.round(minM * 100) / 100 : null, frames: frames, fps_effective: Math.round(frames / ((performance.now() - t0) / 1000) * 10) / 10, trace_2hz: trace };
     }
     $('#btnSkip5').addEventListener('click', function () {
       if (done) return; done = true; listeners.frame = null;
@@ -634,6 +675,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     R.timing_s = {}; for (var k = 1; k <= 5; k++) if (st[k] != null && st[k + 1] != null) R.timing_s['level' + k] = Math.round((st[k + 1] - st[k]) / 100) / 10;
     R.timing_s.total = st[6] != null && st[0] != null ? Math.round((st[6] - st[0]) / 100) / 10 : null;
     var rows = [
+      ['ニックネーム', R.nickname],
       ['端末', R.platform + '　' + (R.screen.w + '×' + R.screen.h) + '（×' + R.screen.dpr + '）'],
       ['ブラウザ', shortUA(R.ua)],
       ['カメラ', (R.camera.label || '（名前なし）') + '　' + R.camera.width + '×' + R.camera.height + '　' + (R.camera.facing || '')],
