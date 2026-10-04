@@ -161,7 +161,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 <script>
 (function () {
   'use strict';
-  var VERSION = 'setup-check 0.1.8 (2026-10-04)';
+  var VERSION = 'setup-check 0.1.9 (2026-10-04)';
   var $ = function (s) { return document.querySelector(s); };
   var R = { version: VERSION, nickname: null, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
     screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio, inner_w: window.innerWidth, inner_h: window.innerHeight },
@@ -670,12 +670,13 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       var now = performance.now();
       var ok = last != null && last < THR;   // コマが来ていないうちは「止まっている」とみなさない
       $('#l5m').textContent = 'うごき：' + (last == null ? '—' : last.toFixed(1));
-      var el = last == null ? 0 : Math.min(3, below * Math.min(3000, span) / 1000);   // 「止まっていた時間」＝直近 3 秒のうち、しきい値未満だった分
+      var el = last == null ? 0 : Math.min(3, below * Math.min(3000, span + 100) / 1000);   // 「止まっていた時間」＝直近 3 秒のうち、しきい値未満だった分
       $('#l5t').textContent = el.toFixed(1) + ' / 3 びょう';
       setMeter('#m5', el / 3 * 100, ok);
       if (now - t0 > 3000 && now - t0 <= 8000 && last != null && last >= THR && last < 12) $('#l5hint').textContent = 'まだ すこし うごいているよ。手を 布に のせて ちからを ぬいてね';   // 宙に浮かせた手は 4〜7 くらい揺れる（布に置くと 1 前後）
       if (now - t0 > 8000) { $('#btnSkip5').hidden = false; $('#l5hint').textContent = 'いちばん しずかな ときの うごき：' + (isFinite(minM) ? minM.toFixed(2) : '—') + '（' + THR.toFixed(1) + ' より 小さく なると クリア）'; }
-      if (span >= 3000 && below >= 0.9) { done = true; listeners.frame = null; R.still = result(true); log('level5', R.still); flash(function () { finish(); }); return; }
+      // 0.1.8 の不具合：窓は「3000 ms より古いものを捨てる」ので span が 3000 に達することがほぼなく、60 fps の実機では合格しなかった → 2900 以上で合格
+      if (span >= 2900 && below >= 0.9) { done = true; listeners.frame = null; R.still = result(true); log('level5', R.still); flash(function () { finish(); }); return; }
       requestAnimationFrame(tick);
     })();
   }
