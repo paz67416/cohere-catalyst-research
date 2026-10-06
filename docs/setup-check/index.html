@@ -113,8 +113,8 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     <div class="cam"><canvas class="mask" id="mask" width="96" height="72"></canvas><div class="roi"></div></div>
     <div class="label"><span>手（布より あかるい ところ）</span><span id="l3w">0 %</span></div>
     <div class="meter" id="m3w"><span></span><i class="tgt" style="left:5%"></i><i class="tgt" style="left:75%"></i></div>
-    <div class="label"><span>手の まわりの くろさ</span><span id="l3d">0 %</span></div>
-    <div class="meter" id="m3d"><span></span><i class="tgt" style="left:70%"></i></div>
+    <div class="label"><span>布の くろさ（手と くらべて）</span><span id="l3d">0 %</span></div>
+    <div class="meter" id="m3d"><span></span><i class="tgt" style="left:50%"></i></div>
     <div class="hint" id="l3hint">あかるさ：—</div>
     <button class="second" id="btnSkip3" hidden>うまくいかないので とばす</button>
   </section>
@@ -161,7 +161,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
 <script>
 (function () {
   'use strict';
-  var VERSION = 'setup-check 0.1.9 (2026-10-04)';
+  var VERSION = 'setup-check 0.1.10 (2026-10-05)';
   var $ = function (s) { return document.querySelector(s); };
   var R = { version: VERSION, nickname: null, started_at: null, ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform,
     screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio, inner_w: window.innerWidth, inner_h: window.innerHeight },
@@ -307,7 +307,8 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     while (lumaRing.length > 1 && now - lumaRing[0].t > MOTION_SPAN_MS * 2.5) lumaRing.shift();
     var o = otsu(hist, n);
     var nonHand = 0, nonHandDark = 0; for (var hb = 0; hb < 256; hb++) { if (hb <= o.thr) { nonHand += hist[hb]; if (hb < 60) nonHandDark += hist[hb]; } }
-    var clothDark = nonHand ? nonHandDark / nonHand : 0;   // 手以外（暗い側の山）のうち輝度 60 未満の割合＝「手の まわりの くろさ」。手の大きさに左右されない
+    var clothDark = nonHand ? nonHandDark / nonHand : 0;   // 手以外（暗い側の山）のうち輝度 60 未満の割合（0.1.9 までの「手の まわりの くろさ」。記録のために残す）
+    var clothRatio = o.mb > 0 ? o.md / o.mb : 1;   // 布の明るさ ÷ 手の明るさ（暗い側の山の平均 ÷ 明るい側の山の平均）。露出が変わっても比は変わらないので、明るい部屋で布が灰色に写っても判定できる
     if (maskCtx) {
       if (!maskImg || maskImg.width !== w || maskImg.height !== h) maskImg = maskCtx.createImageData(w, h);
       var md = maskImg.data;
@@ -318,7 +319,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       }
       maskCtx.putImageData(maskImg, 0, 0);
     }
-    return { mean: sum / n, white: white / n, dark: dark / n, cloth_dark: clothDark, motion: ref ? motion / n : 0, gshift: gshift, bright: o.bright, contrast: o.contrast, thr: o.thr, bright_mean: o.mb, dark_mean: o.md };
+    return { mean: sum / n, white: white / n, dark: dark / n, cloth_dark: clothDark, cloth_ratio: clothRatio, motion: ref ? motion / n : 0, gshift: gshift, bright: o.bright, contrast: o.contrast, thr: o.thr, bright_mean: o.mb, dark_mean: o.md };
   }
   // 明るさのヒストグラムを 2 つの山に分ける（大津の方法）。「手」は明るい側の割合、「手と布の差」は 2 つの山の平均の差。露出が端末ごとに違っても使えるように
   function otsu(hist, n) {
@@ -484,7 +485,7 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
     listeners.frame = function (now, st) { last = st; };
     $('#btnSkip3').addEventListener('click', function () {
       if (done) return; done = true; listeners.frame = null; maskCtx = null;
-      R.light = { mean: last ? Math.round(last.mean) : null, white_pct: last ? Math.round(last.white * 100) : null, dark_pct: last ? Math.round(last.dark * 100) : null, cloth_dark_pct: last ? Math.round(last.cloth_dark * 100) : null, ok: false, skipped: true,
+      R.light = { mean: last ? Math.round(last.mean) : null, white_pct: last ? Math.round(last.white * 100) : null, dark_pct: last ? Math.round(last.dark * 100) : null, cloth_dark_pct: last ? Math.round(last.cloth_dark * 100) : null, cloth_ratio: last ? Math.round(last.cloth_ratio * 100) / 100 : null, ok: false, skipped: true,
         bright_pct: last ? Math.round(last.bright * 100) : null, contrast: last ? Math.round(last.contrast) : null, otsu_thr: last ? last.thr : null, hand_mean: last ? Math.round(last.bright_mean) : null, cloth_mean: last ? Math.round(last.dark_mean) : null,
         blocked_s: blkOut(), first_ok_s: firstOk, trace_2hz: trace };
       log('level3', R.light); flash(function () { show(4); level4(); });
@@ -497,19 +498,20 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       if (!last) blk.no_frame += dtb;
       if (last) {
         // 手：明るい側の山の割合が 5〜75% で、2 つの山の差が 40 以上（絶対の明るさではなく「布より明るいものがある」で見る）。
-        // 布：手以外の画素のうち輝度 60 未満が 70% 以上（手の大きさに左右されない。0.1.6 までは画面全体の 30% 以上で、手が大きいと通らなかった）
-        var w = last.bright * 100, d = last.dark * 100, c = last.contrast, cd = last.cloth_dark * 100;
-        var okW = w >= 5 && w <= 75 && c >= 40, okD = cd >= 70, ok = okW && okD;   // 差 40：暗い箱の中の素手でも通るように（雑音だけだと 10〜15）
+        // 布：布の明るさが手の明るさの半分以下（手の大きさにも露出にも左右されない。0.1.9 までは「手以外の画素のうち輝度 60 未満が 70% 以上」で、明るい部屋では黒い布が 60〜70 に写って通らなかった。
+        //     0.1.6 までは画面全体の 30% 以上が輝度 60 未満で、手が大きいと通らなかった）。実機の黒い布は 0.32〜0.44
+        var w = last.bright * 100, d = last.dark * 100, c = last.contrast, cd = last.cloth_dark * 100, cr = last.cloth_ratio, dk = Math.max(0, Math.min(100, (1 - cr) * 100));   // dk＝「くろさ」＝100 − 比 × 100
+        var okW = w >= 5 && w <= 75 && c >= 40, okD = cr <= 0.5, ok = okW && okD;   // 差 40：暗い箱の中の素手でも通るように（雑音だけだと 10〜15）
         if (w < 5) blk.hand_small += dtb; if (w > 75) blk.hand_large += dtb; if (c < 40) blk.low_contrast += dtb; if (!okD) blk.not_dark += dtb;
         if (ok && firstOk == null) firstOk = Math.round((now - t0) / 100) / 10;
-        if (now - lastTrace >= 500) { lastTrace = now; trace.push([Math.round((now - t0) / 100) / 10, Math.round(w), Math.round(c), Math.round(d), Math.round(last.mean), Math.round(cd)]); }
-        setMeter('#m3w', w, okW); setMeter('#m3d', cd, okD);
-        $('#l3w').textContent = Math.round(w) + ' %'; $('#l3d').textContent = Math.round(cd) + ' %';
-        $('#l3hint').textContent = 'あかるさ：' + Math.round(last.mean) + ' / 255　手と布の差：' + Math.round(c) + (last.mean < 25 ? '　くらすぎ。ライトを あててね' : '') + ((w < 5 || c < 40) ? '　手が みえない（ちかづけてね）' : '') + (w > 75 ? '　手が ちかすぎ（すこし はなしてね）' : '') + (!okD && w <= 75 ? '　手の まわりが くろくない（くろい布を ひろげてね）' : '');
+        if (now - lastTrace >= 500) { lastTrace = now; trace.push([Math.round((now - t0) / 100) / 10, Math.round(w), Math.round(c), Math.round(d), Math.round(last.mean), Math.round(cd), Math.round(cr * 100)]); }   // [秒, 手 %, 手と布の差, くろ %, あかるさ, 手以外で輝度 60 未満 %, 布÷手 %]
+        setMeter('#m3w', w, okW); setMeter('#m3d', dk, okD);
+        $('#l3w').textContent = Math.round(w) + ' %'; $('#l3d').textContent = Math.round(dk) + ' %';
+        $('#l3hint').textContent = 'あかるさ：' + Math.round(last.mean) + ' / 255　手と布の差：' + Math.round(c) + (last.mean < 25 ? '　くらすぎ。ライトを あててね' : '') + ((w < 5 || c < 40) ? '　手が みえない（ちかづけてね）' : '') + (w > 75 ? '　手が ちかすぎ（すこし はなしてね）' : '') + (!okD && w <= 75 && c >= 40 ? '　布が 手の 半分より あかるい（くろい布を ひろげてね。机は だめ）' : '');
         if (ok) { if (!okSince) okSince = now; } else okSince = 0;
         if (ok && now - okSince >= 1500) {
           done = true; listeners.frame = null; maskCtx = null;
-          R.light = { mean: Math.round(last.mean), white_pct: Math.round(last.white * 100), dark_pct: Math.round(d), cloth_dark_pct: Math.round(cd), ok: true,
+          R.light = { mean: Math.round(last.mean), white_pct: Math.round(last.white * 100), dark_pct: Math.round(d), cloth_dark_pct: Math.round(cd), cloth_ratio: Math.round(cr * 100) / 100, ok: true,
             bright_pct: Math.round(w), contrast: Math.round(c), otsu_thr: last.thr, hand_mean: Math.round(last.bright_mean), cloth_mean: Math.round(last.dark_mean),
             blocked_s: blkOut(), first_ok_s: firstOk, trace_2hz: trace };
           log('level3', R.light); flash(function () { show(4); level4(); }); return;
@@ -701,8 +703,8 @@ textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, mo
       ['コマ/びょう（実測）', R.camera.fps_measured + '（設定 ' + (R.camera.fps_setting || '?') + '、このカメラの上限 ' + (R.camera.cap_fps_max || '?') + '、60 必須は ' + (R.camera.fps_request === 'exact60' ? 'OK' : 'だめ') + '）'],
       ['コマごとの時刻', !rvfcSupported ? 'とれない（rVFC なし）' : (R.camera.capture_time ? 'とれる（captureTime）' : 'とれない（captureTime なし）')],
       ['たいら', R.flat.skipped ? 'とばした' + (R.flat.supported ? '' : '（センサーなし）') : R.flat.beta + '° / ' + R.flat.gamma + '°'],
-      ['手', (R.light.skipped ? 'とばした：' : '') + '手 ' + R.light.bright_pct + ' %（差 ' + R.light.contrast + '）　まわりの くろさ ' + R.light.cloth_dark_pct + ' %　あかるさ ' + R.light.mean],
-      ['手で とまった わけ', (function () { var b = R.light.blocked_s || {}, names = { hand_small: '手が ちいさい・みえない', hand_large: '手が おおきすぎ', low_contrast: '手と布の差が たりない', not_dark: '布が くろくない', no_frame: 'えいぞう なし' }; var parts = Object.keys(names).filter(function (k) { return b[k] >= 0.5; }).map(function (k) { return names[k] + ' ' + b[k] + 's'; }); return (parts.length ? parts.join('　') : 'なし') + '　はじめて OK まで ' + (R.light.first_ok_s != null ? R.light.first_ok_s + 's' : '—'); })()],
+      ['手', (R.light.skipped ? 'とばした：' : '') + '手 ' + R.light.bright_pct + ' %（差 ' + R.light.contrast + '）　布÷手 ' + (R.light.cloth_ratio == null ? '—' : Math.round(R.light.cloth_ratio * 100) + ' %') + '（50 % 以下で OK）　あかるさ ' + R.light.mean],
+      ['手で とまった わけ', (function () { var b = R.light.blocked_s || {}, names = { hand_small: '手が ちいさい・みえない', hand_large: '手が おおきすぎ', low_contrast: '手と布の差が たりない', not_dark: '布が 手の 半分より あかるい', no_frame: 'えいぞう なし' }; var parts = Object.keys(names).filter(function (k) { return b[k] >= 0.5; }).map(function (k) { return names[k] + ' ' + b[k] + 's'; }); return (parts.length ? parts.join('　') : 'なし') + '　はじめて OK まで ' + (R.light.first_ok_s != null ? R.light.first_ok_s + 's' : '—'); })()],
       ['リズム', R.rhythm.score + ' %（' + R.rhythm.peak_hz + ' Hz、' + R.rhythm.tries + ' 回目' + (R.rhythm.skipped ? '、とばした' : '') + '）' + (R.rhythm.phase && R.rhythm.phase.computable ? '　ひらく ' + Math.round(R.rhythm.phase.open_ok * 100) + ' %・にぎる ' + Math.round(R.rhythm.phase.close_ok * 100) + ' %' : '　開閉の区別なし')],
       ['解析の重さ', '1 コマ ' + R.camera.analysis_ms_mean + ' ms（最大 ' + R.camera.analysis_ms_max + '）　間引き ' + R.camera.frames_skipped + ' / ' + (R.camera.frames_analyzed + R.camera.frames_skipped) + '　実効 ' + R.rhythm.fps_effective + ' コマ/びょう'],
       ['読み出し方', (function () { var ps = R.camera.analysis_paths || {}; return PATHS.map(function (p) { var s = ps[p] || {}; return p + ' ' + (s.ms_mean != null ? s.ms_mean + ' ms' : (p === 'videoframe' && !s.supported ? 'なし' : '—')); }).join('　') + '　→ ' + R.camera.analysis_path; })()],
