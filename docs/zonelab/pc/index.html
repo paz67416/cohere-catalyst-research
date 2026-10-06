@@ -1,0 +1,3331 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>かがみとほし</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&amp;family=Zen+Maru+Gothic:wght@500;700&amp;display=swap">
+<style>
+/* かがみとほし — スタイル
+   配置：1 画面に 1 つの指示。外枠は夜のティール（mineness の帯と同じ系統）、課題中は純粋な黒。
+   実験の見た目を参加者ごとにそろえるため、OS のライト／ダークに関係なく暗いテーマ 1 つに固定する。 */
+:root {
+  color-scheme: dark;
+  --night: #061a1f;        /* 地 */
+  --deep: #0c2a31;         /* 面 */
+  --deep-2: #113740;       /* 面（押したとき） */
+  --hero-a: #0a3440;       /* ヒーローの上 */
+  --line: #22505a;         /* 罫 */
+  --ink: #e6f0ee;          /* 本文 */
+  --ink-dim: #9bb9b5;      /* 補足 */
+  --sea: #2e9c8a;          /* 主ボタン（ブランドのティール） */
+  --on-sea: #03201b;       /* 主ボタンの文字 */
+  --tide: #16686e;         /* 帯・円 */
+  --ring: rgba(46, 156, 138, 0.16);   /* 同心円 */
+  --star: #f3c969;         /* ほしの金。強調はここだけ */
+  --warn: #f2c14e;
+  --warn-bg: #3a2f12;
+  --bad: #ff8a80;
+  --bad-bg: #3a1616;
+  --ok: #7bd8a5;
+  --ok-bg: #12301f;
+  --black: #000000;        /* 課題中の地 */
+  --st-ink: #f2f2f2;
+  --st-dim: #b9b9b9;
+  --st-line: #5c5c5c;
+  --st-btn: rgba(255, 255, 255, 0.06);
+  --st-veil: rgba(0, 0, 0, 0.62);
+  --st-quit: #444444;
+  --f-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", Meiryo, "Noto Sans JP", system-ui, sans-serif;
+  --f-mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  --sat: env(safe-area-inset-top, 0px);
+  --r: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-text-size-adjust: 100%;
+}
+body.staging { overflow: hidden; }
+[hidden] { display: none !important; }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--star); outline-offset: 2px; }
+
+/* ---------- 外枠 ---------- */
+.shell { max-width: 780px; margin: 0 auto; padding-inline: 16px; padding-block: 0 40px; }
+.bar { display: flex; align-items: baseline; gap: 10px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.bar-name { font-family: var(--f-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; }
+.bar-ver { font-family: var(--f-mono); font-size: 12px; color: var(--ink-dim); }
+.bar-mode { margin-left: auto; font-size: 12px; color: var(--warn); background: var(--warn-bg); padding: 2px 10px; border-radius: 999px; }
+
+.scr { padding-block: 8px 0; }
+.scr-title { font-family: var(--f-display); font-weight: 700; font-size: 26px; line-height: 1.35; margin: 22px 0 10px; text-wrap: balance; }
+.lead { margin: 0 0 8px; }
+.hint { color: var(--ink-dim); font-size: 14px; margin: 8px 0; }
+.tag { display: inline-block; font-size: 13px; color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 2px 10px; margin: 0 0 12px; }
+
+/* ヒーロー：mineness のアイキャッチの同心円をなぞる */
+.hero {
+  position: relative; overflow: hidden;
+  margin-block: 20px 6px; padding: 30px 22px 26px;
+  border: 1px solid var(--line); border-radius: 22px;
+  background:
+    repeating-radial-gradient(circle at 86% 42%, var(--ring) 0 1.5px, transparent 1.5px 26px),
+    linear-gradient(155deg, var(--hero-a) 0%, var(--deep) 55%, var(--night) 100%);
+}
+.hero-title { font-family: var(--f-display); font-weight: 700; font-size: clamp(42px, 12vw, 72px); line-height: 1.08; margin: 0; letter-spacing: .03em; text-wrap: balance; }
+.hero-title .amp { color: var(--star); font-size: .55em; margin-inline: .1em; vertical-align: .2em; }
+.hero-lead { max-width: 30em; margin: 14px 0 0; color: var(--ink-dim); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; margin-block: 18px; }
+.card {
+  display: flex; gap: 16px; align-items: flex-start; text-align: left; width: 100%;
+  padding: 18px; background: var(--deep); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r); cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.card:hover { border-color: var(--sea); }
+.card:active { background: var(--deep-2); }
+.card-icon { flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; }
+.icon-mirror {
+  background:
+    radial-gradient(circle at 34% 30%, var(--ink) 0 11%, transparent 12%),
+    radial-gradient(circle, var(--tide) 0 60%, var(--sea) 61% 69%, transparent 70%);
+}
+.icon-star { color: var(--star); background: radial-gradient(circle, var(--deep-2) 0 68%, transparent 69%); }
+.card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card-title { font-family: var(--f-display); font-weight: 700; font-size: 22px; line-height: 1.3; }
+.card-text { color: var(--ink-dim); font-size: 15px; line-height: 1.65; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { font-size: 12px; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; }
+
+.facts { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; color: var(--ink-dim); font-size: 14px; }
+.facts li { padding-left: 1.4em; position: relative; }
+.facts li::before { content: ""; position: absolute; left: .2em; top: .75em; width: .55em; height: .55em; border-radius: 50%; background: var(--tide); }
+.facts-line { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); }
+.foot-ver { font-family: var(--f-mono); font-size: 12px; color: var(--ink-dim); }
+.linkish { background: none; border: none; color: var(--ink-dim); text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; cursor: pointer; }
+.linkish:hover { color: var(--ink); }
+
+.consent-list { margin: 6px 0 14px; padding-left: 1.4em; display: grid; gap: 8px; }
+.checks { display: grid; gap: 4px; margin: 10px 0; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 44px; cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--sea); flex: none; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; }
+.btn {
+  min-height: 48px; padding: 10px 20px; border-radius: 12px;
+  background: var(--deep); color: var(--ink); border: 1px solid var(--line); cursor: pointer;
+}
+.btn:hover:not(:disabled) { border-color: var(--sea); }
+.btn.primary { background: var(--sea); color: var(--on-sea); border-color: var(--sea); font-weight: 700; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.small { min-height: 40px; padding: 6px 14px; font-size: 14px; }
+
+/* 研究者メニュー */
+.research-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.panel { background: var(--deep); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; margin: 14px 0; }
+.panel-title { font-size: 15px; font-weight: 700; margin: 0 0 10px; color: var(--ink); }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-dim); }
+.form input, .form select {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--night);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0;
+}
+.saved { display: grid; gap: 8px; }
+.saved-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--night); display: grid; gap: 6px; }
+.saved-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.saved-meta, .saved-sub { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.saved-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.empty { color: var(--ink-dim); margin: 0; }
+.msg { padding: 6px 10px; border-radius: 8px; font-size: 14px; margin: 10px 0 0; }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.table-wrap { overflow-x: auto; }
+table.kv, table.prov { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.kv th, table.kv td, table.prov th, table.prov td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.kv th { color: var(--ink-dim); font-weight: 400; width: 34%; }
+table.kv td { word-break: break-word; }
+table.prov { min-width: 640px; }
+table.prov th { color: var(--ink-dim); font-weight: 400; white-space: nowrap; }
+.mono { font-family: var(--f-mono); white-space: nowrap; }
+
+/* ---------- 参加者画面 ---------- */
+.stage {
+  position: fixed; inset: 0; z-index: 50;
+  background: var(--black); color: var(--st-ink);
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  font-family: var(--f-body);
+}
+.stage.nocursor, .stage.nocursor .stage-canvas { cursor: none; }
+.stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.st-layer {
+  position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 10px)
+    calc(env(safe-area-inset-right, 0px) + 16px)
+    calc(env(safe-area-inset-bottom, 0px) + 18px)
+    calc(env(safe-area-inset-left, 0px) + 16px);
+}
+.st-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: 38px; padding-left: 96px; color: var(--st-dim); font-size: 15px; }
+.st-label { justify-self: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.st-checks { justify-self: end; color: var(--sea); font-weight: 700; font-variant-numeric: tabular-nums; }
+.st-checks.pop { animation: pop .45s ease-out; }
+@keyframes pop { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.st-center { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 14px; padding-inline: 2vw; min-height: 0; }
+.st-main {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: clamp(24px, 5.6vw, 46px); line-height: 1.45;
+  white-space: pre-line; text-wrap: balance; max-width: 22em;
+}
+.st-main.st-statement { font-family: var(--f-body); font-size: clamp(24px, 5.8vw, 40px); max-width: 20em; }
+.st-sub { font-size: clamp(16px, 3.4vw, 22px); color: var(--st-dim); white-space: pre-line; max-width: 32em; line-height: 1.7; }
+.st-sub:empty, .st-main:empty, .st-status:empty, .st-extra:empty { display: none; }
+.st-status { font-size: clamp(16px, 3.4vw, 22px); color: var(--st-dim); font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+.st-status.good { color: var(--ok); }
+.st-status.count { color: var(--sea); font-weight: 700; font-size: clamp(20px, 4.6vw, 30px); letter-spacing: .04em; }
+.st-extra { width: min(100%, 560px); pointer-events: auto; }
+.st-scale-ends { display: flex; justify-content: space-between; color: var(--st-dim); font-size: 15px; }
+.st-text {
+  width: 100%; min-height: 6.5em; resize: vertical;
+  font: 18px/1.6 var(--f-body); color: var(--st-ink); background: var(--st-btn);
+  border: 2px solid var(--st-line); border-radius: 12px; padding: 10px 12px;
+  user-select: text; -webkit-user-select: text; touch-action: auto;
+}
+/* 映像の上に指示を出すとき：文字を上に寄せ、薄い下地を付ける */
+.st-layer.over .st-center { justify-content: flex-start; padding-top: 6px; }
+.st-layer.over .st-main, .st-layer.over .st-sub, .st-layer.over .st-status { background: var(--st-veil); border-radius: 12px; padding: 4px 14px; }
+.st-layer.over .st-main { font-size: clamp(20px, 4.6vw, 34px); }
+
+.st-buttons { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; min-height: 72px; pointer-events: none; }
+.st-btn {
+  pointer-events: auto; touch-action: manipulation;
+  min-width: 140px; min-height: 64px; padding: 10px 22px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 16px; border: 2px solid var(--st-line); background: var(--st-btn); color: var(--st-ink);
+  font: 700 22px/1.2 var(--f-body); cursor: pointer;
+}
+.st-btn.primary { border-color: var(--sea); }
+.st-btn.answer { min-width: min(40vw, 210px); }
+.st-key { font: 12px/1.2 var(--f-mono); color: var(--st-dim); }
+.st-scale { display: inline-flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.st-scale-row { display: flex; gap: 6px; justify-content: center; pointer-events: none; }
+.st-btn.scale { min-width: 0; width: clamp(40px, 11.5vw, 64px); min-height: 56px; padding: 6px 0; font-size: 20px; border-radius: 12px; }
+
+.st-quit {
+  position: absolute; z-index: 3;
+  top: calc(env(safe-area-inset-top, 0px) + 10px); left: calc(env(safe-area-inset-left, 0px) + 12px);
+  background: transparent; color: var(--st-dim); border: 1px solid var(--st-quit);
+  border-radius: 999px; padding: 6px 14px; font-size: 14px; cursor: pointer; touch-action: manipulation;
+}
+.st-banner {
+  background: var(--warn-bg); color: var(--warn); font-size: 13px; line-height: 1.5; padding: 3px 12px; border-radius: 999px;
+  white-space: nowrap; max-width: 52vw; overflow: hidden; text-overflow: ellipsis;
+}
+.st-float { position: absolute; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 90px); right: calc(env(safe-area-inset-right, 0px) + 16px); }
+.st-float-btn {
+  width: clamp(96px, 26vmin, 150px); height: clamp(96px, 26vmin, 150px); border-radius: 50%;
+  border: 2px solid var(--st-line); background: var(--st-btn); color: var(--st-ink);
+  font: 700 20px var(--f-body); cursor: pointer; touch-action: manipulation;
+}
+
+/* カメラ映像の受け口 */
+.cam-video { position: fixed; right: 0; bottom: 0; width: 2px; height: 2px; opacity: 0.01; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .st-checks.pop { animation: none; }
+  .card { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="shell" class="shell">
+  <header class="bar">
+    <span class="bar-name">かがみとほし</span>
+    <span class="bar-ver" id="barVer"></span>
+    <span class="bar-mode" id="barMode" hidden></span>
+  </header>
+
+  <main class="page">
+    <!-- ホーム -->
+    <section id="scr-home" class="scr">
+      <div class="hero">
+        <h1 class="hero-title">かがみ<span class="amp">と</span>ほし</h1>
+        <p class="hero-lead">画面の中の顔や手について、感じたことを「はい」「いいえ」で答える、ふたつの短い課題です。</p>
+      </div>
+
+      <div class="cards">
+        <button class="card" id="goMirror" type="button">
+          <span class="card-icon icon-mirror" aria-hidden="true"></span>
+          <span class="card-body">
+            <span class="card-title">かがみ</span>
+            <span class="card-text">カメラで自分の顔をうつし、音にあわせて口をうごかします。</span>
+            <span class="card-meta"><span class="chip">カメラ</span><span class="chip">音</span><span class="chip" id="mirrorMins">約10分</span></span>
+          </span>
+        </button>
+        <button class="card" id="goGame" type="button">
+          <span class="card-icon icon-star" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="40" height="40"><path d="M24 4.5l5.6 12.3 13.4 1.4-10 9 2.9 13.2L24 33.6l-11.9 6.8 2.9-13.2-10-9 13.4-1.4z" fill="currentColor"/></svg>
+          </span>
+          <span class="card-body">
+            <span class="card-title">ほしあつめ</span>
+            <span class="card-text">指かマウスで画面の手をうごかし、おちてくるほしをあつめます。</span>
+            <span class="card-meta"><span class="chip">指・マウス</span><span class="chip" id="gameMins">約10分</span></span>
+          </span>
+        </button>
+      </div>
+
+      <ul class="facts">
+        <li>18歳以上の方が対象です。</li>
+        <li>顔の映像は外へ送りません。課題の中で使う短い記録は、課題がおわると消えます。</li>
+        <li>答えはこの端末の中にだけ保存されます。</li>
+      </ul>
+
+      <footer class="foot">
+        <button class="linkish" id="goResearch" type="button">研究者メニュー</button>
+        <span class="foot-ver" id="footVer"></span>
+      </footer>
+    </section>
+
+    <!-- 同意 -->
+    <section id="scr-consent" class="scr" hidden>
+      <h2 class="scr-title">はじめる前に</h2>
+      <p class="tag">試作版の文面です。本番の同意文は、倫理審査のあとで差し替えます。</p>
+      <ol class="consent-list">
+        <li>これは研究用アプリの試作版です。<b id="consentName"></b>は約<span id="consentMins"></span>分かかります。</li>
+        <li id="consentCamera">カメラの映像は、その場で画面にうつします。準備のときに 10 秒ほど録り、課題の中で見せるために使います。この記録は端末のメモリの中にだけあり、課題がおわると消えます。外へは送りません。</li>
+        <li>答えと操作の記録、端末の種類（画面の大きさや更新の速さ）は、この端末の中にだけ保存されます。外へは送りません。</li>
+        <li>気分が悪くなったら、いつでも左上の「やめる」（パソコンは Esc キー）で中止できます。</li>
+      </ol>
+      <div class="checks">
+        <label class="check" for="cAge"><input type="checkbox" id="cAge"> 18歳以上です</label>
+        <label class="check" for="cAgree"><input type="checkbox" id="cAgree"> 上の内容を読み、参加に同意します</label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="consentBack" type="button">もどる</button>
+        <button class="btn primary" id="consentGo" type="button" disabled>はじめる</button>
+      </div>
+    </section>
+
+    <!-- おわり -->
+    <section id="scr-done" class="scr" hidden>
+      <h2 class="scr-title" id="doneTitle">おつかれさまでした</h2>
+      <p class="lead" id="doneText"></p>
+      <p class="facts-line" id="doneFacts"></p>
+      <div class="actions">
+        <button class="btn" id="doneHome" type="button">ホームへ</button>
+        <button class="btn primary" id="doneOther" type="button">もうひとつの課題へ</button>
+      </div>
+      <p class="hint">記録の書き出しは「研究者メニュー」から行います。</p>
+    </section>
+
+    <!-- 研究者メニュー -->
+    <section id="scr-research" class="scr" hidden>
+      <div class="research-head">
+        <h2 class="scr-title">研究者メニュー</h2>
+        <button class="btn" id="researchBack" type="button">ホームへ</button>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">実施の設定</h3>
+        <div class="form">
+          <label for="rPid">参加者ID<input id="rPid" type="text" autocomplete="off" placeholder="例：P001"></label>
+          <label for="rSess">次のセッション番号<input id="rSess" type="number" min="1" step="1"></label>
+          <label for="rMode">長さ
+            <select id="rMode">
+              <option value="normal">本番の長さ</option>
+              <option value="check">動作確認（短縮）</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint" id="rModeNote" hidden>アドレスの末尾に #check が付いているため、いまは動作確認（短縮）で動きます。</p>
+        <div class="checks">
+          <label class="check" for="rMirRamp"><input type="checkbox" id="rMirRamp"> かがみ：上げ下げ試行を入れる</label>
+          <label class="check" for="rMirCal"><input type="checkbox" id="rMirCal"> かがみ：画面の点滅で機材遅延を推定する（試験的）</label>
+          <label class="check" for="rDemo"><input type="checkbox" id="rDemo"> かがみ：カメラが使えないとき、デモ映像で流れを確かめられるようにする</label>
+          <label class="check" for="rGameRamp"><input type="checkbox" id="rGameRamp"> ほしあつめ：上げ下げラウンドを入れる</label>
+          <label class="check" for="rMirReplay"><input type="checkbox" id="rMirReplay"> かがみ：再生条件を入れる（準備で 10 秒録り、本番に 2 回混ぜる。仮M10）</label>
+          <label class="check" for="rMirProbe"><input type="checkbox" id="rMirProbe"> かがみ：打ち切りプローブを入れる（t 秒で止めて 1 文。仮P1）</label>
+          <label class="check" for="rSelfPaced"><input type="checkbox" id="rSelfPaced"> かがみ：音なし・自分のペースで口を動かす（仮M9 の代案）</label>
+          <label class="check" for="rGameProbe"><input type="checkbox" id="rGameProbe"> ほしあつめ：打ち切りプローブを入れる（仮P3）</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">保存されている記録</h3>
+        <p class="hint">試行が終わるたびに、このブラウザの中へ自動で保存しています。CSV は 1 行 1 試行、JSON は端末の情報・準備の記録・機材遅延の推定を含む全体です。</p>
+        <div id="savedList" class="saved"></div>
+        <p id="saveMsg" class="msg" hidden></p>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">この端末</h3>
+        <div class="table-wrap"><table class="kv" id="envTable"></table></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">仮の仕様（決めたら config.js を書きかえる）</h3>
+        <div class="table-wrap"><table class="prov" id="provTable"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 参加者画面（全画面） -->
+<div id="stage" class="stage" hidden>
+  <canvas id="stageCanvas" class="stage-canvas"></canvas>
+  <div id="stLayer" class="st-layer">
+    <div class="st-top"><span id="stLabel" class="st-label"></span><span id="stBanner" class="st-banner" hidden></span><span id="stChecks" class="st-checks"></span></div>
+    <div class="st-center">
+      <div id="stMain" class="st-main"></div>
+      <div id="stSub" class="st-sub"></div>
+      <div id="stStatus" class="st-status"></div>
+      <div id="stExtra" class="st-extra"></div>
+    </div>
+    <div id="stButtons" class="st-buttons"></div>
+  </div>
+  <div id="stFloat" class="st-float"></div>
+  <button id="stQuit" class="st-quit" type="button" tabindex="-1">やめる</button>
+</div>
+
+<!-- カメラ映像の受け口（2px。非表示にするとブラウザによってはコマの通知が止まるため。v3 と同じ） -->
+<video id="camVideo" class="cam-video" playsinline muted></video>
+<!-- 再生条件の映像（準備で録った数秒の映像。課題が終わると消す） -->
+<video id="replayVideo" class="cam-video" playsinline muted loop></video>
+
+<script>window.ZL_BUILD = {"profile": "pc", "id": "0.2.3-38f51fd", "built": "2026-10-06"};</script>
+<script>
+/* アプリの版。データの各行とセッションの JSON に記録される。 */
+(function (ZL) {
+  'use strict';
+  ZL.VERSION = Object.freeze({
+    app: '0.2.3',
+    date: '2026-10-06',
+    stage: 'UI 試作 v0.2.3（0.2.2 ＋ 公開ページ用の印：どの置き場所・どのビルドで取った記録かを残す）'
+  });
+
+  /* 公開ページ用の印（0.2.3）。tools/build_pages.py が 1 ファイル版を作るときに window.ZL_BUILD を埋め込む。
+     app/ をそのまま開いたとき（ローカル）は profile が 'local'、id と built は空になる。
+     profile：'pc'（PC 用の置き場所）・'sp'（スマホ用の置き場所）・'local'。
+     課題の中身はこの印では変えない（どこで取った記録かを残すだけ）。 */
+  var b = window.ZL_BUILD || {};
+  ZL.BUILD = Object.freeze({
+    profile: String(b.profile || 'local'),
+    id: String(b.id || ''),
+    built: String(b.built || '')
+  });
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   かがみとほし（ZoneLab）— 文面と数値はここだけに置く
+   ---------------------------------------------------------------------
+   ・RHI v3 から引き継いだ値には「v3」と書いた。
+   ・資料にない値は PROVISIONAL に番号付き（仮M／仮G／仮P／仮F／仮L／仮S）で置き、
+     セッションの JSON に丸ごと記録する。研究者が決めたら decided に日付を書く。
+   ・参加者の画面には「所有感」「主体感」「仮説」などの言葉を出さない（v3 と同じ）。
+   ・0.2.0（2026-10-06）：遅延の幅を 1200 ms まで（リズムを 40 bpm に）、再生条件、
+     打ち切りプローブ（τ を測る試行）、ほしあつめのラウンドを長く少なく、フロー項目の差し替え。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+
+  var CONFIG = {
+    appName: 'かがみとほし',
+
+    // 3 つの文。v3 の文面の「手」を、かがみでは「顔」に置き換えた（仮M6）。
+    // ほしあつめは画面上の CG の手（仮G4）。
+    statements: {
+      mirror: [
+        { key: 'own',    text: '画面の顔が、自分の顔のように感じた' },
+        { key: 'agency', text: '画面の顔の動きを、自分が起こしていると感じた' },
+        { key: 'sync',   text: '画面の顔の動きは、自分の顔の動きと同時だった' }
+      ],
+      game: [
+        { key: 'own',    text: '画面の手が、自分の手のように感じた' },
+        { key: 'agency', text: '画面の手の動きを、自分が起こしていると感じた' },
+        { key: 'sync',   text: '画面の手の動きは、自分の動きと同時だった' }
+      ]
+    },
+
+    // ラウンド後の項目（仮F3：0.2.0 で 2 文 → 6 文。没入 3・なめらかさ 2・釣り合い 1。文は仮。
+    // 既存の尺度（Flow Short Scale など）を使うときは、使用条件を確かめ、日本語版の出どころを論文に書く）
+    flowItems: [
+      { id: 'flow_absorb',  text: 'いまのラウンドに夢中になっていた' },
+      { id: 'flow_time',    text: '時間がたつのを忘れていた' },
+      { id: 'flow_focus',   text: 'ほかのことは頭に浮かばなかった' },
+      { id: 'flow_auto',    text: '考えなくても手が勝手に動いていた' },
+      { id: 'flow_control', text: '手を思いどおりに動かせていた' },
+      { id: 'flow_balance', text: 'むずかしさは、ちょうどよかった' }
+    ],
+    scale7: { left: 'まったく ちがう', right: 'とても そう' },   // 仮F2
+
+    metronome: { bpm: 100, highHz: 880, lowHz: 440, toneMs: 60, first: 'high' },  // v3（仮28）。かがみの拍は mirror.rhythm.bpm
+    answer: { limitMs: 5000, gapMs: 300 },                                          // v3（仮7・仮8）
+
+    mirror: {
+      timing: {
+        // 仮M8：v3 ブロック C（黒 3 秒・映像 15 秒・休み 5 秒）から短縮。0.1.0 で「長くてストレス」の感想（2026-10-04）
+        normal: { blackMs: 2000, videoMs: 8000, restMs: 3000, rampBlackMs: 2000, probeRestMs: 1500 },
+        check:  { blackMs: 1000, videoMs: 3000, restMs: 1000, rampBlackMs: 1000, probeRestMs: 500 }   // v3 の動作確認モードと同じ短縮
+      },
+      // 仮M9：拍を 100 → 40 bpm に（1 往復 3 秒、半周期 1.5 秒）。付加遅延 1200 ms までなら逆位相に折り返さない
+      rhythm: { bpm: 40, selfPacedHint: '1 往復 3 秒くらい', practiceBeats: 8 },
+      levelsAddedMs: [0, 150, 300, 500, 800, 1200],   // 仮M1（付加分。0.1.x は 0〜500）
+      repsPerLevel: 1,                                // 仮M2
+      practiceTrials: 1,                              // 仮M2（0.1.0 は 2）
+      ramp: { lowMs: 0, highMs: 1200, startJitterMs: 100, trials: 2,
+              speedMsPerS: { normal: 25, check: 250 } },  // 仮M3（0.1.x は 0〜500 ms・毎秒 12 ms）
+      // 仮M10：再生条件。準備で 10 秒録った自分の顔を、本番の中で乱数の位置に 2 回流す（付加 0 の経路）。
+      // 録画は端末の中だけ、課題が終わると消す（同意文に明記）
+      replay: { trials: 2, recordMs: { normal: 10000, check: 4000 }, addedMs: 0 },
+      // 仮P1：打ち切りプローブ。映像を t 秒で打ち切り、文を 1 つだけ聞く。t × 文 の全組を乱数順に 1 回ずつ
+      probe: {
+        normal: { tSec: [1, 2, 4, 8, 16], statements: ['own', 'agency', 'sync'], reps: 1 },
+        check:  { tSec: [0.5, 2], statements: ['own', 'agency'], reps: 1 },
+        addedMs: 0                                     // 仮P2：プローブの付加遅延
+      },
+      camera: { width: 640, height: 480, fps: 60, facing: 'user' },
+      setup: { lumaMin: 40, lumaMax: 225, holdMs: 1500, peaks: 3, refractoryMs: 350 },  // 仮M5
+      // 仮M11：口の指標の範囲（枠の中央下。横 36〜64%、縦 62〜80%）。顔を円に入れたときの口のあたり
+      mouthRoi: { x0: 0.36, x1: 0.64, y0: 0.62, y1: 0.80 },
+      slotMaxWidth: { pc: 480, touch: 360 }           // 仮M12：溜めるコマの横幅（1200 ms ぶん溜めるので、スマホは小さく）
+    },
+
+    game: {
+      timing: {
+        normal: { roundMs: 90000, practiceMs: 15000, restMs: 3000, probeRestMs: 1500 },    // 仮G3（0.1.x は 40 秒）
+        check:  { roundMs: 8000,   practiceMs: 5000,  restMs: 800,  probeRestMs: 300 }
+      },
+      modes: ['easy', 'fit', 'hard'],
+      lagLevelsMs: [0, 300],           // 仮G1（付加分。0.1.x は 0・150・300）
+      reps: 1,
+      checkRounds: 3,
+      levelFixed: { easy: 0.0, hard: 1.0 },          // 仮G2
+      fit: { start: 0.35, up: 0.03, down: 0.09 },    // 仮G2：重みづけ上下法（つかむ→難しく 0.03、のがす→易しく 0.09 → 約 75%）
+      ramp: { lowMs: 0, highMs: 400, trials: 2,
+              speedMsPerS: { normal: 10, check: 80 } },   // 仮G6
+      // 仮P3：ほしあつめの打ち切りプローブ（難しさは「ちょうど」の開始値のまま固定、付加遅延 0）
+      probe: {
+        normal: { tSec: [1, 2, 4, 8, 16], statements: ['own', 'agency', 'sync'], reps: 1 },
+        check:  { tSec: [0.5, 2], statements: ['own', 'agency'], reps: 1 },
+        lagMs: 0, mode: 'fit'
+      },
+      touchOffsetPx: 90                                 // 仮G5
+    },
+
+    latency: { flashes: { normal: 6, check: 4 }, whiteMs: 300, blackMinMs: 1100, blackMaxMs: 1700, minStep: 6 }  // 仮L1（0.1.0 は 8 回）
+  };
+
+  // 書き出す CSV の列（1 行 1 試行）。列名・値は ASCII
+  var COMMON = ['app_version', 'session_id', 'participant_id', 'session_no', 'module', 'run_mode', 'source',
+    'trial', 'practice', 'block', 't_start_iso'];
+  var ANSWERS = ['q_order', 'resp_own', 'rt_own', 'resp_agency', 'rt_agency', 'resp_sync', 'rt_sync'];
+  var PROBE = ['probe_t_ms', 'probe_key', 'probe_resp', 'probe_rt'];
+  var TAIL = ['aborted', 'abort_reason', 'seed'];
+  var FLOW = [];
+  CONFIG.flowItems.forEach(function (it) { FLOW.push(it.id); FLOW.push('rt_' + it.id); });
+  CONFIG.columns = {
+    mirror: COMMON.concat(['video_source', 'added_set_ms', 'added_real_mean_ms', 'added_real_sd_ms', 'cam_fps', 'late_frames',
+      'max_frame_gap_ms', 'underruns', 'off_target_refreshes', 'frame_faults', 'ts_kind',
+      'ramp_dir', 'ramp_speed_ms_s', 'ramp_start_ms', 'ramp_end_ms', 'judgement',
+      'press_count', 'press1_t_ms', 'press1_added_ms', 'presses', 'end_reason',
+      'motion_video_mean', 'motion_rest_mean',
+      'mouth_motion_video', 'mouth_motion_rest', 'mouth_sync_video', 'mouth_freq_hz', 'rhythm_bpm'], ANSWERS, PROBE, TAIL),
+    game: COMMON.concat(['mode', 'lag_set_ms', 'ramp_dir', 'ramp_speed_ms_s', 'ramp_start_ms', 'ramp_end_ms', 'judgement',
+      'press_count', 'press1_t_ms', 'press1_lag_ms', 'presses',
+      'duration_ms', 'catches', 'misses', 'catch_rate', 'level_start', 'level_end', 'level_mean',
+      'pointer_hz', 'pointer_type', 'raf_gaps', 'frames'], ANSWERS, FLOW, PROBE, TAIL)
+  };
+
+  // 仮の仕様の一覧（研究者メニューに表示し、JSON に記録する）
+  CONFIG.PROVISIONAL = [
+    { id: '仮M1', what: 'かがみ：付加遅延の段階', value: '0・150・300・500・800・1200 ms', note: '付加分のみ。機材遅延は端末ごとに未知なので、同じ端末の中の差で比べる前提。0.1.x の 0〜500 では所有感・主体感が崩れなかった（S03）ため広げた', decided: null },
+    { id: '仮M2', what: 'かがみ：試行数', value: '練習 1、本番は各段階 1 回（計 6）＋再生 2', note: '試作のため少なめ。本番の回数は検出力の見積もりのあとで決める（0.1.0 の練習は 2）', decided: null },
+    { id: '仮M3', what: 'かがみ：上げ下げ試行', value: '付加 0〜1200 ms、毎秒 25 ms、開始点を 0〜100 ms ずらす、上げ 1・下げ 1（判断は所有感か同時性を乱数で）', note: 'v3 ブロック R の考え方を移したもの（0.1.x は 0〜500 ms・毎秒 12 ms）。下げの開始点のずらしは v3 でも未決（仮13）', decided: null },
+    { id: '仮M8', what: 'かがみ：1 試行の長さ', value: '黒＋音 2 秒 → 映像 8 秒 → 3 文 → 休み 3 秒（1 回 約 20 秒）', note: '0.1.0 は v3 と同じ 3・15・5 秒で「長くてストレス」（研究者、2026-10-04）。自分の顔は所有の錯覚を立ち上げる必要がないので短くした。他人の顔など所有の立ち上がりが要る条件を足すときは見直す', decided: null },
+    { id: '仮M4', what: 'かがみ：動き', value: '高い音で口をあけ、低い音で閉じる（40 bpm）', note: 'v3 の手の開閉を口に置き換えた。O\'Sullivan ら（2018）は口の動きで顔の所有感・主体感を測っている', decided: null },
+    { id: '仮M9', what: 'かがみ：拍の速さ', value: '40 bpm（1 往復 3 秒、半周期 1.5 秒）。研究者メニューで「自分のペース」（音なし）も選べる', note: '100 bpm（0.1.x）では付加 600 ms で逆位相・1200 ms で同位相に戻り、500 ms より先を測れない（S03 の所見）。40 bpm なら 1200 ms までは折り返さない', decided: null },
+    { id: '仮M10', what: 'かがみ：再生条件', value: '準備で 10 秒録った自分の顔（いろいろな速さで口を動かす）を、本番の乱数の位置に 2 回流す。付加 0 の経路。録画は端末の中だけ、課題が終わると消す', note: '自分の顔のまま、いまの動きと無関係に動く → 主体感だけを下げる狙い。同意文に一時的な記録を書いた。MediaRecorder が無いブラウザでは飛ばす', decided: null },
+    { id: '仮M11', what: 'かがみ：口の指標', value: '枠の中央下（横 36〜64%、縦 62〜80%）の明るさの時系列から、拍の周期（0.333 Hz）の成分の強さ（0〜1）と、動きの大きさを出す', note: '0.1.x の指標（中央 60% の動き）は口の動きを捉えていなかった（S03）。自分のペースのときは 0.1〜1.5 Hz の中で最も強い周期を出す', decided: null },
+    { id: '仮M12', what: 'かがみ：溜めるコマの大きさ', value: 'PC 480 px 幅、タッチ端末 360 px 幅', note: '1200 ms ぶん溜めるため（60 fps で約 100 コマ）。スマホのメモリを考えて小さくした', decided: null },
+    { id: '仮M5', what: 'かがみ：手順の確認', value: '中央の明るさ 40〜225 を 1.5 秒保つ／動きの山を 3 回', note: '顔そのものは検出していない（明るさと動きで代用）', decided: null },
+    { id: '仮M6', what: 'かがみ：3 つの文', value: 'v3 の文の「手」を「顔」に置き換え', note: '文面は研究者が確定する', decided: null },
+    { id: '仮M7', what: 'かがみ：映像の表示', value: '鏡像（左右反転）、枠いっぱいに収める（切り取らない）', note: 'スマホ縦置きでは上下に黒い帯が出る', decided: null },
+    { id: '仮P1', what: '打ち切りプローブ：打ち切る時間と文', value: '1・2・4・8・16 秒 × 3 文 を 1 回ずつ（15 回）、乱数順。映像（ゲーム）を t 秒で止め、文を 1 つだけ聞く', note: '「はい」の割合の t に対する立ち上がりを、所有感・主体感・同時性で別々に見る（論文の τ の予測に直接当たる唯一の形）。1 試行 1 問なので質問が錯覚を壊す問題を避けやすい', decided: null },
+    { id: '仮P2', what: '打ち切りプローブ：かがみの付加遅延', value: '0 ms', note: '形成の時間経過を見るので遅延は足さない。遅延つきの τ を見るなら段階を足す', decided: null },
+    { id: '仮P3', what: '打ち切りプローブ：ほしあつめの条件', value: '難しさは「ちょうど」の開始値で固定、付加遅延 0', note: '状態（難しさ）× τ を見るなら難しさの段階を足す', decided: null },
+    { id: '仮G1', what: 'ほしあつめ：操作の遅延', value: '0・300 ms（付加分）', note: 'タッチやマウスの入力遅延は端末ごとに未知。同じ端末の中の差で比べる。0.1.x の 150 ms はラウンドを長くするために外した', decided: null },
+    { id: '仮G2', what: 'ほしあつめ：難しさ', value: 'ゆっくり＝0、きつい＝1、ちょうど＝自動調整（つかむ +0.03／のがす −0.09 → 約 75%）', note: '0〜1 の値で落ちる速さ・出る間隔・ほしの大きさ・横ゆれを決める。退屈・ちょうどよい・きついの 3 条件は Keller & Bless（2008）型の操作を想定（文献は要確認）', decided: null },
+    { id: '仮G3', what: 'ほしあつめ：長さ', value: '1 ラウンド 90 秒、練習 15 秒（3 難しさ × 2 遅延 = 6 ラウンド、あそぶ時間 9 分。プローブと上げ下げを入れて全体 約 19 分）', note: '0.1.x は 40 秒 × 9 ラウンド。フローに入るには数分の持続が要るとみて長く少なくした。もう一つの案は「3 分 × 3 難しさ（遅延 0）」で、遅延の段階をプローブと上げ下げだけに任せる形。長すぎれば上げ下げを外す（研究者メニュー）か、プローブの文を 2 つにする。実機で通してから決める', decided: null },
+    { id: '仮G4', what: 'ほしあつめ：画面の手と 3 つの文', value: '白い手袋のような右手（甲側）。v3 の文の「自分の手の動き」を「自分の動き」に', note: '左利きや手の色の影響は未検討', decided: null },
+    { id: '仮G5', what: 'ほしあつめ：指と手のずれ', value: 'タッチのときは手を指の 90 px 上に描く', note: '指で手が隠れないように。マウスではずらさない', decided: null },
+    { id: '仮G6', what: 'ほしあつめ：上げ下げラウンド', value: '付加 0〜400 ms、毎秒 10 ms、上げ 1・下げ 1、「かわった」を押す', note: '', decided: null },
+    { id: '仮F3', what: 'ラウンド後の項目', value: '6 文（夢中・時間・ほかのこと・勝手に動く・思いどおり・ちょうどよい）、7 件法', note: '0.1.x の 2 文（仮F1）から増やした仮の文。没入・なめらかさ・釣り合いの 3 面。論文に使うときは既存の尺度（例：Flow Short Scale）の日本語版の出どころと使用条件を確かめて差し替える。画面には「フロー」の語を出さない', decided: null },
+    { id: '仮F2', what: '7 件法の両端', value: 'まったく ちがう ／ とても そう', note: '', decided: null },
+    { id: '仮L1', what: '機材遅延の自動推定（試験的）', value: '画面を 0.3 秒白くし、顔の明るさの変化をカメラで拾う。6 回（0.1.0 は 8 回）', note:'提示時刻は「白を描いた画面更新の時刻＋1 リフレッシュ」と置く。スマホのスローモーション撮影（v3 の方法）と突き合わせて妥当性を確かめるまでは参考値', decided: null },
+    { id: '仮S1', what: '最後の自由記述', value: '任意。なくても進める', note: 'Cohere（Command A）で第二コーダー化するときの材料', decided: null },
+    { id: '仮S2', what: '手順のチェック ✔', value: '準備の手順ができたときだけ付ける。回答には付けない', note: '10/4 の決定（報酬は手続きにだけ）を形にしたもの', decided: null },
+    { id: '仮S3', what: '「あと何回」の表示', value: '本番の始めに全回数と所要時間の見込み、各回の準備画面に「あと N 回」、休みに「のこり N 回」、上の帯に「i / N」。映像やゲームの最中は出さない', note: '研究者の提案（2026-10-04）。練習は回数に入れない。プローブと再生も回数に入れる', decided: null }
+  ];
+
+  ZL.CONFIG = CONFIG;
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 小道具：数値、乱数（シード付き）、CSV、保存、待ち時間（中止できる） */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U = {};
+
+  U.now = function () { return performance.now(); };
+  U.clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+  U.lerp = function (a, b, f) { return a + (b - a) * f; };
+  U.mean = function (a) { if (!a || !a.length) return NaN; var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
+  U.sd = function (a) {
+    if (!a || a.length < 2) return NaN;
+    var m = U.mean(a), s = 0;
+    for (var i = 0; i < a.length; i++) s += (a[i] - m) * (a[i] - m);
+    return Math.sqrt(s / (a.length - 1));
+  };
+  U.median = function (a) {
+    if (!a || !a.length) return NaN;
+    var b = a.slice().sort(function (x, y) { return x - y; }), k = b.length >> 1;
+    return b.length % 2 ? b[k] : (b[k - 1] + b[k]) / 2;
+  };
+  function rnd(x, k) { return (x == null || typeof x !== 'number' || !isFinite(x)) ? '' : Math.round(x * k) / k; }
+  U.r0 = function (x) { return rnd(x, 1); };
+  U.r1 = function (x) { return rnd(x, 10); };
+  U.r2 = function (x) { return rnd(x, 100); };
+  U.r3 = function (x) { return rnd(x, 1000); };
+
+  // 乱数（シード付き。mulberry32）。条件の順番はすべてこれで決め、シードを記録する
+  U.rng = function (seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  U.shuffle = function (arr, rnd) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(rnd() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  };
+  U.newSeed = function () {
+    try { var a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; } catch (e) { return (Math.random() * 4294967296) >>> 0; }
+  };
+
+  // 逐次の平均・SD・最小・最大
+  U.Stat = function () { this.n = 0; this.m = 0; this.s = 0; this.min = Infinity; this.max = -Infinity; };
+  U.Stat.prototype.add = function (x) {
+    if (typeof x !== 'number' || !isFinite(x)) return;
+    this.n++; var d = x - this.m; this.m += d / this.n; this.s += d * (x - this.m);
+    if (x < this.min) this.min = x; if (x > this.max) this.max = x;
+  };
+  U.Stat.prototype.summary = function () {
+    return { n: this.n, mean: this.n ? this.m : NaN, sd: this.n > 1 ? Math.sqrt(this.s / (this.n - 1)) : NaN,
+      min: this.n ? this.min : NaN, max: this.n ? this.max : NaN };
+  };
+
+  // ---------- 周期の指標（口の動き。仮M11） ----------
+  // series: [{t: ms, v: 値}]。f0（Hz）の成分の強さを 0〜1 で返す（純粋な正弦波で約 1）。
+  // 平均を引き、|Σ v·e^(-i2πf0t)| を Σ|v| で割り、正弦波のときの値（π/4）で正規化する
+  U.rhythmIndex = function (series, f0) {
+    if (!series || series.length < 8 || !(f0 > 0)) return NaN;
+    var n = series.length, m = 0, i;
+    for (i = 0; i < n; i++) m += series[i].v;
+    m /= n;
+    var re = 0, im = 0, abs = 0;
+    for (i = 0; i < n; i++) {
+      var v = series[i].v - m, ph = 2 * Math.PI * f0 * series[i].t / 1000;
+      re += v * Math.cos(ph); im -= v * Math.sin(ph); abs += Math.abs(v);
+    }
+    if (abs <= 0) return 0;
+    return Math.min(1, Math.sqrt(re * re + im * im) / abs / (Math.PI / 4));
+  };
+  // fmin〜fmax（Hz）を step ごとに調べ、最も強い周期とその強さを返す（自分のペースのとき）
+  U.dominantFreq = function (series, fmin, fmax, step) {
+    var best = { f: NaN, index: NaN };
+    if (!series || series.length < 8) return best;
+    for (var f = fmin; f <= fmax + 1e-9; f += step) {
+      var r = U.rhythmIndex(series, f);
+      if (!(r <= best.index)) { best = { f: f, index: r }; }
+    }
+    return best;
+  };
+
+  U.pad = function (n, w) { var s = String(n); while (s.length < w) s = '0' + s; return s; };
+  U.ymd = function (d) { d = d || new Date(); return d.getFullYear() + U.pad(d.getMonth() + 1, 2) + U.pad(d.getDate(), 2); };
+  U.stamp = function (d) { d = d || new Date(); return U.ymd(d) + '-' + U.pad(d.getHours(), 2) + U.pad(d.getMinutes(), 2); };
+  U.uid = function () {
+    var a = new Uint8Array(6);
+    try { crypto.getRandomValues(a); } catch (e) { for (var i = 0; i < 6; i++) a[i] = Math.floor(Math.random() * 256); }
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  };
+  U.safeName = function (s) { return String(s || '').replace(/[^0-9A-Za-z_-]+/g, '_').slice(0, 40) || 'anon'; };
+
+  U.nextFrame = function () { return new Promise(function (r) { requestAnimationFrame(r); }); };
+  // 描いたものが画面に出たおよその時刻（2 回目の画面更新の時刻。v3 の I8 と同じ考え方）
+  U.afterPaint = function () { return new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); }); };
+
+  U.isTouch = function () {
+    try { return (navigator.maxTouchPoints || 0) > 0 && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
+  };
+
+  // 画面の更新間隔（rAF の間隔の中央値）
+  U.measureRefresh = function (ms) {
+    return new Promise(function (resolve) {
+      var ts = [], t0 = null;
+      function f(t) {
+        if (t0 === null) t0 = t;
+        ts.push(t);
+        if (t - t0 < ms) { requestAnimationFrame(f); return; }
+        var iv = [];
+        for (var i = 1; i < ts.length; i++) iv.push(ts[i] - ts[i - 1]);
+        var med = U.median(iv);
+        resolve({ interval_ms: med, hz: 1000 / med, n: iv.length });
+      }
+      requestAnimationFrame(f);
+    });
+  };
+
+  // ---------- CSV（UTF-8・BOM 付き。Excel で文字化けしない） ----------
+  U.csvCell = function (v) {
+    if (v == null) return '';
+    if (typeof v === 'number' && !isFinite(v)) return '';
+    var s = String(v);
+    if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+  U.csv = function (rows, cols) {
+    var out = [cols.join(',')];
+    rows.forEach(function (r) { out.push(cols.map(function (c) { return U.csvCell(r[c]); }).join(',')); });
+    return '﻿' + out.join('\r\n') + '\r\n';
+  };
+
+  // ---------- ファイルとして渡す ----------
+  // claude.ai の公開ページでは downloads の機能を使い、ふつうのブラウザではダウンロードにする
+  var dlPromise = null;
+  U.viewerDownloads = function () {
+    if (dlPromise) return dlPromise;
+    try {
+      if (window.claude && typeof window.claude.use === 'function') dlPromise = window.claude.use('downloads').catch(function () { return null; });
+      else dlPromise = Promise.resolve(null);
+    } catch (e) { dlPromise = Promise.resolve(null); }
+    return dlPromise;
+  };
+  U.saveText = async function (filename, text) {
+    var dl = await U.viewerDownloads();
+    if (dl) {
+      try { var r = await dl.save({ filename: filename, data: text }); return { ok: true, how: 'viewer', status: r && r.status }; }
+      catch (e) { return { ok: false, how: 'viewer', code: e && e.code, error: e && e.message }; }
+    }
+    try {
+      var type = /\.json$/i.test(filename) ? 'application/json' : (/\.csv$/i.test(filename) ? 'text/csv' : 'text/plain');
+      var blob = new Blob([text], { type: type + ';charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = filename; a.rel = 'noopener';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      return { ok: true, how: 'browser' };
+    } catch (e2) { return { ok: false, how: 'browser', error: String(e2) }; }
+  };
+
+  // ---------- 端末に覚えておく設定（失敗しても止めない） ----------
+  U.lsGet = function (k, def) { try { var v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } };
+  U.lsSet = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  // =====================================================================
+  // 進行の中止（「やめる」・Esc・画面から離れたとき）
+  // 待ち時間・回答待ちはすべて中止で reject される → 各モジュールは試行の記録を残して終える
+  // =====================================================================
+  var R = ZL.run = { aborted: false, reason: null, listeners: [] };
+  R.reset = function () { R.aborted = false; R.reason = null; R.listeners = []; };
+  R.abort = function (reason) {
+    if (R.aborted) return;
+    R.aborted = true; R.reason = reason || 'abort';
+    var ls = R.listeners.slice(); R.listeners = [];
+    ls.forEach(function (f) { try { f(R.reason); } catch (e) {} });
+  };
+  R.onAbort = function (f) {
+    if (R.aborted) { setTimeout(function () { f(R.reason); }, 0); return function () {}; }
+    R.listeners.push(f);
+    return function () { var i = R.listeners.indexOf(f); if (i >= 0) R.listeners.splice(i, 1); };
+  };
+  R.error = function () { var e = new Error('ABORT'); e.isAbort = true; e.reason = R.reason; return e; };
+  R.wait = function (ms) {
+    return new Promise(function (resolve, reject) {
+      if (R.aborted) { reject(R.error()); return; }
+      var off = function () {};
+      var id = setTimeout(function () { off(); resolve(); }, ms);
+      off = R.onAbort(function () { clearTimeout(id); reject(R.error()); });
+    });
+  };
+  // 画面の更新に合わせて ms だけ進める（半リフレッシュ早めに切り替え）。onFrame(t, elapsed) を毎回呼ぶ
+  R.frames = function (ms, onFrame) {
+    return new Promise(function (resolve, reject) {
+      if (R.aborted) { reject(R.error()); return; }
+      var t0 = null, id = 0, off = function () {};
+      var half = ((ZL.env && ZL.env.refresh_ms) || 16.7) / 2;
+      function f(t) {
+        if (R.aborted) return;
+        if (t0 === null) t0 = t;
+        var el = t - t0;
+        if (onFrame) {
+          try { onFrame(t, el); } catch (e) { off(); reject(e); return; }
+        }
+        if (el >= ms - half) { off(); resolve({ t0: t0, t1: t }); return; }
+        id = requestAnimationFrame(f);
+      }
+      id = requestAnimationFrame(f);
+      off = R.onAbort(function () { cancelAnimationFrame(id); reject(R.error()); });
+    });
+  };
+  // 条件がそろうまで画面の更新ごとに test(t) を呼ぶ（true で終わる）
+  R.until = function (test) {
+    return new Promise(function (resolve, reject) {
+      if (R.aborted) { reject(R.error()); return; }
+      var id = 0, off = function () {};
+      function f(t) {
+        if (R.aborted) return;
+        var ok;
+        try { ok = test(t); } catch (e) { off(); reject(e); return; }
+        if (ok) { off(); resolve(t); return; }
+        id = requestAnimationFrame(f);
+      }
+      id = requestAnimationFrame(f);
+      off = R.onAbort(function () { cancelAnimationFrame(id); reject(R.error()); });
+    });
+  };
+
+  // ---------- 自動テスト（#autotest のときだけ。実験には使わない） ----------
+  ZL.dev = { auto: false };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 記録の保存：試行が終わるたびにセッション全体をブラウザ内（IndexedDB）へ書く。
+   使えない環境（非公開ウィンドウ、公開ページのプレビューなど）ではメモリに持つだけになる。
+   外へは送らない。 */
+(function (ZL) {
+  'use strict';
+  var S = ZL.store = { db: null, mem: {}, ok: false };
+
+  S.open = function () {
+    return new Promise(function (resolve) {
+      try {
+        if (!window.indexedDB) { resolve(false); return; }
+        var req = indexedDB.open('zonelab', 1);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains('sessions')) db.createObjectStore('sessions', { keyPath: 'id' });
+        };
+        req.onsuccess = function () { S.db = req.result; S.ok = true; resolve(true); };
+        req.onerror = function () { resolve(false); };
+        req.onblocked = function () { resolve(false); };
+      } catch (e) { resolve(false); }
+    });
+  };
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function byNewest(a) { return a.sort(function (x, y) { return String(y.created_iso || '').localeCompare(String(x.created_iso || '')); }); }
+
+  S.put = function (session) {
+    var copy;
+    try { copy = clone(session); } catch (e) { return Promise.resolve(false); }
+    S.mem[copy.id] = copy;
+    if (!S.db) return Promise.resolve(false);
+    return new Promise(function (resolve) {
+      try {
+        var tx = S.db.transaction('sessions', 'readwrite');
+        tx.objectStore('sessions').put(copy);
+        tx.oncomplete = function () { resolve(true); };
+        tx.onerror = function () { resolve(false); };
+        tx.onabort = function () { resolve(false); };
+      } catch (e) { resolve(false); }
+    });
+  };
+
+  S.all = function () {
+    var fromMem = Object.keys(S.mem).map(function (k) { return S.mem[k]; });
+    if (!S.db) return Promise.resolve(byNewest(fromMem));
+    return new Promise(function (resolve) {
+      try {
+        var tx = S.db.transaction('sessions', 'readonly');
+        var req = tx.objectStore('sessions').getAll();
+        req.onsuccess = function () {
+          var map = {};
+          (req.result || []).forEach(function (s) { map[s.id] = s; });
+          fromMem.forEach(function (s) { map[s.id] = s; });
+          resolve(byNewest(Object.keys(map).map(function (k) { return map[k]; })));
+        };
+        req.onerror = function () { resolve(byNewest(fromMem)); };
+      } catch (e) { resolve(byNewest(fromMem)); }
+    });
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* メトロノーム（Web Audio）。RHI v3 の metronome.js を移植。
+   高い音と低い音を交互（最初は高い音）。先読み予約で画面の処理に引きずられないようにする。
+   速さは start(bpm) で指定（省略時は CONFIG.metronome.bpm）。かがみは 40 bpm（仮M9）。
+   かがみでは「高い音で口をあける・低い音で閉じる」。 */
+(function (ZL) {
+  'use strict';
+  var A = ZL.audio = {
+    ctx: null, master: null, volume: 0.6, bpm: null,
+    running: false, timer: null, nextTime: 0, beat: 0, scheduled: [], beats: [], perfOffset: 0, firstPerf: null
+  };
+
+  function cfg() { return ZL.CONFIG.metronome; }
+  function bpm() { return A.bpm || cfg().bpm; }
+
+  // 利用者の操作（タップ・クリック）の中で呼ぶ
+  A.ensure = function () {
+    try {
+      if (!A.ctx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return Promise.resolve(false);
+        A.ctx = new AC({ latencyHint: 'interactive' });
+        A.master = A.ctx.createGain();
+        A.master.gain.value = A.volume;
+        A.master.connect(A.ctx.destination);
+      }
+      if (A.ctx.state === 'suspended') return A.ctx.resume().then(function () { return true; }, function () { return false; });
+      return Promise.resolve(true);
+    } catch (e) { return Promise.resolve(false); }
+  };
+
+  // AudioContext の時刻 → performance.now() の時刻（音が出るおよその時刻）
+  A.ctxToPerf = function (ctxTime) {
+    try {
+      var ts = A.ctx.getOutputTimestamp && A.ctx.getOutputTimestamp();
+      if (ts && ts.performanceTime) return ts.performanceTime + (ctxTime - ts.contextTime) * 1000;
+    } catch (e) {}
+    return performance.now() + (ctxTime - A.ctx.currentTime) * 1000;
+  };
+
+  function scheduleTone(when, kind) {
+    var c = cfg();
+    var osc = A.ctx.createOscillator(), g = A.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = kind === 'high' ? c.highHz : c.lowHz;
+    var dur = c.toneMs / 1000;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(1.0, when + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(g); g.connect(A.master);
+    osc.start(when); osc.stop(when + dur + 0.01);
+    var rec = { osc: osc, gain: g, when: when };
+    A.scheduled.push(rec);
+    osc.onended = function () {
+      try { g.disconnect(); } catch (e) {}
+      var i = A.scheduled.indexOf(rec); if (i >= 0) A.scheduled.splice(i, 1);
+    };
+    A.beats.push({ i: A.beat, kind: kind, perf_est: A.perfOffset + when * 1000 });
+  }
+
+  function tick() {
+    var interval = 60 / bpm();
+    while (A.nextTime < A.ctx.currentTime + 0.12) {
+      var first = cfg().first, other = first === 'high' ? 'low' : 'high';
+      scheduleTone(A.nextTime, A.beat % 2 === 0 ? first : other);
+      A.nextTime += interval;
+      A.beat++;
+    }
+  }
+
+  // 鳴らし始める。戻り値：1 拍目の予定時刻（performance.now() 系）。音が使えないときは null
+  A.start = function (bpmValue) {
+    if (!A.ctx) return null;
+    A.stop();
+    A.bpm = bpmValue || null;
+    A.beats = []; A.beat = 0;
+    A.nextTime = A.ctx.currentTime + 0.03;
+    A.running = true;
+    A.firstPerf = A.ctxToPerf(A.nextTime);
+    A.perfOffset = A.firstPerf - A.nextTime * 1000;
+    tick();
+    A.timer = setInterval(tick, 25);
+    return A.firstPerf;
+  };
+
+  // 止める。まだ鳴っていない予約も消す。戻り値：鳴らした拍の記録
+  A.stop = function () {
+    if (A.timer) { clearInterval(A.timer); A.timer = null; }
+    if (!A.running) return A.beats.slice();
+    A.running = false;
+    var now = A.ctx ? A.ctx.currentTime : 0;
+    A.scheduled.slice().forEach(function (r) {
+      if (r.when > now) {
+        try { r.gain.gain.cancelScheduledValues(0); r.gain.gain.setValueAtTime(0, now); } catch (e) {}
+        try { r.osc.stop(now); } catch (e) {}
+      }
+    });
+    var nowPerf = performance.now();
+    A.beats = A.beats.filter(function (b) { return b.perf_est <= nowPerf; });
+    return A.beats.slice();
+  };
+
+  // 1 往復（高→低の 2 拍）の中の位置 0〜1。鳴っていないときは null（デモ映像の口の動きに使う）
+  A.phase = function (tPerf) {
+    if (!A.running || A.firstPerf == null) return null;
+    var cyc = 2 * 60000 / bpm(), d = tPerf - A.firstPerf;
+    if (d < 0) return null;
+    return (d % cyc) / cyc;
+  };
+  // いま鳴っている速さ（bpm）。鳴っていなければ null
+  A.currentBpm = function () { return A.running ? bpm() : null; };
+
+  A.info = function () {
+    if (!A.ctx) return null;
+    return {
+      sample_rate: A.ctx.sampleRate,
+      base_latency_s: A.ctx.baseLatency != null ? A.ctx.baseLatency : null,
+      output_latency_s: A.ctx.outputLatency != null ? A.ctx.outputLatency : null,
+      volume: A.volume, metronome: cfg()
+    };
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* カメラの取り込み（前面カメラ／ウェブカメラ）。映像は画面に映すだけで、保存も送信もしない。 */
+(function (ZL) {
+  'use strict';
+  var C = ZL.camera = { stream: null, track: null, video: null, requested: null, events: [], onTrouble: null };
+
+  C.init = function (videoEl) { C.video = videoEl; };
+  C.supported = function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); };
+
+  C.open = async function () {
+    C.stop();
+    if (!C.supported()) { var e0 = new Error('このブラウザではカメラを使えません'); e0.code = 'unsupported'; throw e0; }
+    var c = ZL.CONFIG.mirror.camera;
+    C.requested = { facingMode: c.facing, width: c.width, height: c.height, frameRate: c.fps };
+    var stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: c.facing, width: { ideal: c.width }, height: { ideal: c.height }, frameRate: { ideal: c.fps } }
+    });
+    C.stream = stream;
+    C.track = stream.getVideoTracks()[0];
+    C.track.addEventListener('ended', function () {
+      C.events.push({ t: performance.now(), type: 'track_ended' });
+      if (C.onTrouble) C.onTrouble('camera_ended');
+    });
+    C.video.muted = true;
+    C.video.setAttribute('playsinline', '');
+    C.video.srcObject = stream;
+    await C.video.play();
+    await new Promise(function (resolve) {
+      if (C.video.readyState >= 2 && C.video.videoWidth) { resolve(); return; }
+      C.video.addEventListener('loadeddata', function () { resolve(); }, { once: true });
+    });
+    return C.info();
+  };
+
+  C.stop = function () {
+    if (C.stream) C.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+    C.stream = null; C.track = null;
+    try { if (C.video) C.video.srcObject = null; } catch (e) {}
+  };
+
+  C.info = function () {
+    if (!C.track) return null;
+    var s = {};
+    try { s = C.track.getSettings ? C.track.getSettings() : {}; } catch (e) {}
+    return {
+      label: C.track.label,
+      width: s.width, height: s.height, frameRate: s.frameRate, facingMode: s.facingMode,
+      requested: C.requested
+    };
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   遅延ライン：カメラのコマを溜めて、付加遅延ぶん前のコマを映す
+   ---------------------------------------------------------------------
+   RHI v3 の delayline.js の仕組みを移植・簡略化したもの。
+   1. 新しいコマが届くたび（requestVideoFrameCallback）、コマをリング
+      バッファに写し、撮影時刻（captureTime。無ければ受け取った時刻）を付ける。
+   2. 画面の更新ごと（requestAnimationFrame）に
+        「最新コマの時刻 − 付加遅延 ＋ 半コマ」以前で最も新しいコマ
+      を描く。付加 0 も同じ経路を通す（どの条件でも機材遅延が共通になる）。
+   3. 映像の区間では、描いたコマごとに
+        付加遅延の実測 ＝ 最新コマの時刻 − 描いたコマの時刻
+      を記録する。
+   4. 届いたコマの中央部分の明るさと動き（前のコマとの差）を計算する。
+      準備の確認（明るさ・口の動き）と機材遅延の推定（画面の点滅）に使う。
+      0.2.0：口のあたり（仮M11 の範囲）の明るさと動きも別に出す（口のリズムの指標に使う）。
+   5. カメラが使えないときは、合成した顔（デモ映像）を同じ経路に流す。
+   6. 0.2.0：コマの出どころ（feed）をカメラと再生（録っておいた自分の顔）で切り替えられる。
+      どちらも同じ遅延ラインを通る（再生は付加 0 で流す。仮M10）。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U;
+  var hasRVFC = typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+
+  var DL = ZL.delay = {
+    video: null, cam: null, source: null,      // source: 'camera' | 'demo'。video: いまコマを取る <video>
+    feed: 'camera',                            // 'camera' | 'replay'
+    slots: [], cap: 0, head: -1, count: 0, seq: 0,
+    slotW: 0, slotH: 0, srcW: 0, srcH: 0,
+    frameIntervalMs: 1000 / 30, tolMs: 1000 / 60, spanMs: 900,
+    lastArrival: 0, lastRaf: 0, running: false, rafId: 0, demoTimer: 0,
+    target: null, tctx: null, W: 0, H: 0, dpr: 1,
+    mode: 'black',                              // 'black' | 'video' | 'live' | 'white'
+    addedMs: 0, mirror: true, guide: false,
+    rec: null, lastAddedReal: NaN,
+    lastLuma: NaN, lastMotion: NaN, motionLog: null,
+    lastMouthLuma: NaN, lastMouthMotion: NaN, mouthLog: null,
+    listeners: [], flashResolve: null,
+    tsKind: null, liveFps: null, _fpsN: 0, _fpsT0: 0,
+    rect: { x: 0, y: 0, w: 0, h: 0 }
+  };
+
+  // ---------- バッファ ----------
+  function capFor(iv) { return Math.ceil(DL.spanMs / iv) + 6; }
+  function slotMaxWidth() {
+    var m = ZL.CONFIG.mirror.slotMaxWidth;
+    if (typeof m === 'number') return m;
+    return (ZL.stage && ZL.stage.touch) ? m.touch : m.pc;
+  }
+  function allocate(w, h) {
+    var maxW = slotMaxWidth();
+    var sw = Math.min(w, maxW), sh = Math.round(h * sw / w);
+    var cap = capFor(DL.frameIntervalMs);
+    DL.slots = [];
+    for (var i = 0; i < cap; i++) {
+      var c = document.createElement('canvas');
+      c.width = sw; c.height = sh;
+      DL.slots.push({ canvas: c, ctx: c.getContext('2d', { alpha: false }), t: 0, n: 0, cap: null, arr: 0 });
+    }
+    DL.cap = cap; DL.head = -1; DL.count = 0;
+    DL.slotW = sw; DL.slotH = sh; DL.srcW = w; DL.srcH = h;
+  }
+  // 溜める長さ（最大付加遅延＋余裕）
+  DL.setSpan = function (maxAddedMs) {
+    DL.spanMs = Math.max(600, maxAddedMs + 350);
+    if (DL.srcW) allocate(DL.srcW, DL.srcH);
+  };
+
+  // ---------- 明るさと動き（中央の 60% を 48×36 に縮めて読む） ----------
+  var AN = { c: null, ctx: null, w: 48, h: 36, a: null, b: null, has: false };
+  function analyze(slot, arr, cap) {
+    if (!AN.c) {
+      AN.c = document.createElement('canvas'); AN.c.width = AN.w; AN.c.height = AN.h;
+      AN.ctx = AN.c.getContext('2d', { willReadFrequently: true });
+      AN.a = new Float32Array(AN.w * AN.h); AN.b = new Float32Array(AN.w * AN.h);
+    }
+    var sw = DL.slotW, sh = DL.slotH, cw = sw * 0.6, ch = sh * 0.6;
+    AN.ctx.drawImage(slot.canvas, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, AN.w, AN.h);
+    var d = AN.ctx.getImageData(0, 0, AN.w, AN.h).data, n = AN.w * AN.h, cur = AN.a, prev = AN.b, sum = 0, diff = 0;
+    for (var i = 0, p = 0; i < n; i++, p += 4) {
+      var y = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+      cur[i] = y; sum += y;
+      if (AN.has) diff += Math.abs(y - prev[i]);
+    }
+    var luma = sum / n, motion = AN.has ? diff / n : 0;
+    AN.a = prev; AN.b = cur; AN.has = true;
+    DL.lastLuma = luma; DL.lastMotion = motion;
+    if (DL.motionLog) DL.motionLog.push(motion);
+    // 口のあたり（仮M11）。枠全体に対する割合で指定された範囲を 24×16 に縮めて読む
+    var mouth = analyzeMouth(slot);
+    DL.lastMouthLuma = mouth.luma; DL.lastMouthMotion = mouth.motion;
+    if (DL.mouthLog) DL.mouthLog.push({ t: arr, v: mouth.luma, m: mouth.motion });
+    var a = { arr: arr, cap: cap, luma: luma, motion: motion, mouthLuma: mouth.luma, mouthMotion: mouth.motion };
+    for (var k = 0; k < DL.listeners.length; k++) { try { DL.listeners[k](a); } catch (e) {} }
+  }
+  var MO = { c: null, ctx: null, w: 24, h: 16, a: null, b: null, has: false };
+  function analyzeMouth(slot) {
+    var roi = ZL.CONFIG.mirror.mouthRoi;
+    if (!MO.c) {
+      MO.c = document.createElement('canvas'); MO.c.width = MO.w; MO.c.height = MO.h;
+      MO.ctx = MO.c.getContext('2d', { willReadFrequently: true });
+      MO.a = new Float32Array(MO.w * MO.h); MO.b = new Float32Array(MO.w * MO.h);
+    }
+    var sw = DL.slotW, sh = DL.slotH;
+    MO.ctx.drawImage(slot.canvas, sw * roi.x0, sh * roi.y0, sw * (roi.x1 - roi.x0), sh * (roi.y1 - roi.y0), 0, 0, MO.w, MO.h);
+    var d = MO.ctx.getImageData(0, 0, MO.w, MO.h).data, n = MO.w * MO.h, cur = MO.a, prev = MO.b, sum = 0, diff = 0;
+    for (var i = 0, p = 0; i < n; i++, p += 4) {
+      var y = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+      cur[i] = y; sum += y;
+      if (MO.has) diff += Math.abs(y - prev[i]);
+    }
+    var out = { luma: sum / n, motion: MO.has ? diff / n : 0 };
+    MO.a = prev; MO.b = cur; MO.has = true;
+    return out;
+  }
+  DL.addListener = function (fn) {
+    DL.listeners.push(fn);
+    return function () { var i = DL.listeners.indexOf(fn); if (i >= 0) DL.listeners.splice(i, 1); };
+  };
+
+  // ---------- コマを受け取る ----------
+  function pushFrame(draw, w, h, cap, arr) {
+    if (!w || !h) return;
+    if (w !== DL.srcW || h !== DL.srcH || !DL.cap) allocate(w, h);
+    DL.head = (DL.head + 1) % DL.cap;
+    var s = DL.slots[DL.head];
+    draw(s.ctx, DL.slotW, DL.slotH);
+    s.cap = cap; s.arr = arr; s.t = cap != null ? cap : arr; s.n = ++DL.seq;
+    if (DL.count < DL.cap) DL.count++;
+    var gap = DL.lastArrival ? arr - DL.lastArrival : 0;
+    if (DL.rec) {
+      DL.rec.frames++;
+      if (gap > 1.5 * DL.frameIntervalMs) DL.rec.late++;
+      if (gap > DL.rec.maxGap) DL.rec.maxGap = gap;
+    }
+    DL.lastArrival = arr;
+    DL._fpsN++;
+    if (!DL._fpsT0) DL._fpsT0 = arr;
+    else if (arr - DL._fpsT0 >= 1000) { DL.liveFps = DL._fpsN * 1000 / (arr - DL._fpsT0); DL._fpsN = 0; DL._fpsT0 = arr; }
+    if (DL.measuring) DL.measuring.push({ cap: cap, arr: arr });
+    analyze(s, arr, cap);
+  }
+
+  function drawVideo(ctx, sw, sh) { ctx.drawImage(DL.video, 0, 0, sw, sh); }
+
+  // コマの通知を <video> に仕掛ける。出どころを切り替えたら、古い方の通知はここで止まる
+  function armRVFC(el) {
+    if (!el || !hasRVFC) return;
+    el.requestVideoFrameCallback(function cb(now, md) {
+      if (!DL.running || DL.source !== 'camera' || DL.video !== el) return;
+      var arr = performance.now();
+      var w = (md && md.width) || el.videoWidth, h = (md && md.height) || el.videoHeight;
+      var cap = (md && typeof md.captureTime === 'number' && md.captureTime > 0) ? md.captureTime : null;
+      if (DL.feed === 'replay') cap = null;   // 再生では撮影時刻は意味を持たない（受け取った時刻で扱う）
+      else {
+        if (DL.tsKind == null) DL.tsKind = cap != null ? 'captureTime' : 'arrival';
+        if (DL.tsKind !== 'captureTime') cap = null;
+      }
+      pushFrame(drawVideo, w, h, cap, arr);
+      el.requestVideoFrameCallback(cb);
+    });
+  }
+  // requestVideoFrameCallback の無いブラウザ：画面の更新ごとに currentTime の変化を新しいコマとみなす
+  var lastVT = -1;
+  function pollVideo() {
+    var v = DL.video;
+    if (!v || v.readyState < 2 || !v.videoWidth) return;
+    if (v.currentTime !== lastVT) {
+      lastVT = v.currentTime;
+      if (DL.tsKind == null) DL.tsKind = 'arrival_poll';
+      pushFrame(drawVideo, v.videoWidth, v.videoHeight, null, performance.now());
+    }
+  }
+
+  // ---------- デモ映像（カメラが使えない環境で、画面の流れだけを確かめるため） ----------
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+  }
+  function drawDemoFace(ctx, W, H, t) {
+    ctx.fillStyle = '#1e2427'; ctx.fillRect(0, 0, W, H);
+    var cx = W / 2 + Math.sin(t / 1900) * W * 0.012, cy = H * 0.53;
+    var rx = Math.min(W, H) * 0.27, ry = rx * 1.3;
+    // 首と肩
+    ctx.fillStyle = '#5d6b70'; roundRectPath(ctx, cx - rx * 1.6, cy + ry * 0.85, rx * 3.2, H, rx * 0.6); ctx.fill();
+    ctx.fillStyle = '#b9b2a7'; ctx.fillRect(cx - rx * 0.32, cy + ry * 0.6, rx * 0.64, ry * 0.45);
+    // 顔
+    ctx.fillStyle = '#cfc8bd'; ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    // 髪
+    ctx.fillStyle = '#2b2b2e'; ctx.beginPath(); ctx.ellipse(cx, cy - ry * 0.62, rx * 1.04, ry * 0.5, 0, Math.PI, 0); ctx.fill();
+    // 目（ときどき瞬き）
+    var blink = (t % 3700) < 140 ? 0.15 : 1;
+    ctx.fillStyle = '#26282a';
+    ctx.beginPath(); ctx.ellipse(cx - rx * 0.38, cy - ry * 0.1, rx * 0.1, rx * 0.07 * blink, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + rx * 0.38, cy - ry * 0.1, rx * 0.1, rx * 0.07 * blink, 0, 0, Math.PI * 2); ctx.fill();
+    // 口：メトロノームが鳴っていれば拍に合わせ、鳴っていなければ かがみの拍の速さで 1 往復（40 bpm なら 3 秒）
+    var ph = ZL.audio.phase(t);
+    if (ph == null) { var cyc = 2 * 60000 / (ZL.CONFIG.mirror.rhythm.bpm || 40); ph = (t % cyc) / cyc; }
+    var open = ph < 0.5 ? Math.sin(ph / 0.5 * Math.PI) : 0;
+    ctx.fillStyle = '#5a2f2f';
+    ctx.beginPath(); ctx.ellipse(cx, cy + ry * 0.42, rx * 0.3, Math.max(rx * 0.03, rx * 0.22 * open), 0, 0, Math.PI * 2); ctx.fill();
+    // 透かし
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = 'bold ' + Math.round(H * 0.07) + 'px sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText('DEMO', W * 0.04, H * 0.04);
+  }
+  function demoFrame() {
+    if (!DL.running || DL.source !== 'demo') return;
+    var t = performance.now();
+    pushFrame(function (ctx, sw, sh) { drawDemoFace(ctx, sw, sh, t); }, 480, 360, null, t);
+  }
+
+  // ---------- 描画 ----------
+  function selectSlot(D) {
+    var newest = DL.slots[DL.head], limit = newest.t - D + DL.tolMs, idx = DL.head;
+    for (var k = 0; k < DL.count; k++) {
+      var s = DL.slots[idx];
+      if (s.t <= limit) return { chosen: s, newest: newest, underrun: false };
+      idx = (idx - 1 + DL.cap) % DL.cap;
+    }
+    return { chosen: DL.slots[(DL.head - DL.count + 1 + DL.cap) % DL.cap], newest: newest, underrun: true };
+  }
+  // 枠いっぱいに収める（切り取らない。仮M7）。鏡像は左右反転
+  function computeRect() {
+    var sw = DL.slotW, sh = DL.slotH;
+    if (!sw || !sh) return;
+    var sc = Math.min(DL.W / sw, DL.H / sh);
+    var w = sw * sc, h = sh * sc;
+    DL.rect = { x: (DL.W - w) / 2, y: (DL.H - h) / 2, w: w, h: h, sc: sc };
+  }
+  function drawFrame(ctx, s) {
+    computeRect();
+    var r = DL.rect;
+    ctx.save();
+    if (DL.mirror) { ctx.translate(r.x + r.w, r.y); ctx.scale(-1, 1); }
+    else ctx.translate(r.x, r.y);
+    ctx.drawImage(s.canvas, 0, 0, DL.slotW, DL.slotH, 0, 0, r.w, r.h);
+    ctx.restore();
+  }
+  function drawGuide(ctx) {
+    var r = DL.rect, cx = r.x + r.w / 2, cy = r.y + r.h * 0.5;
+    var ry = r.h * 0.34, rx = Math.min(ry / 1.3, r.w * 0.36);
+    ctx.save();
+    ctx.lineWidth = Math.max(2, 3 * DL.dpr);
+    ctx.setLineDash([10 * DL.dpr, 8 * DL.dpr]);
+    var ok = DL.lastLuma >= ZL.CONFIG.mirror.setup.lumaMin && DL.lastLuma <= ZL.CONFIG.mirror.setup.lumaMax;
+    ctx.strokeStyle = ok ? 'rgba(123,216,165,0.95)' : 'rgba(255,255,255,0.8)';
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function onRaf(t) {
+    if (!DL.running) return;
+    DL.rafId = requestAnimationFrame(onRaf);
+    if (DL.source === 'camera' && !hasRVFC) pollVideo();
+    var refresh = (ZL.env && ZL.env.refresh_ms) || 16.7;
+    if (DL.rec && DL.lastRaf && t - DL.lastRaf > 2.5 * refresh) DL.rec.rafGaps++;
+    DL.lastRaf = t;
+    // 映像の区間でコマが 0.5 秒届かない → 記録だけする（試作では止めない）
+    if (DL.rec && DL.mode === 'video' && DL.lastArrival && performance.now() - DL.lastArrival > 500 && !DL.rec.inFault) { DL.rec.faults++; DL.rec.inFault = true; }
+    if (DL.rec && DL.rec.inFault && performance.now() - DL.lastArrival < 100) DL.rec.inFault = false;
+
+    var ctx = DL.tctx;
+    if (!ctx) return;
+    if (DL.mode === 'white') {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, DL.W, DL.H);
+      if (DL.flashResolve) { var res = DL.flashResolve; DL.flashResolve = null; res(t); }
+      return;
+    }
+    ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, DL.W, DL.H);
+    if ((DL.mode !== 'video' && DL.mode !== 'live') || DL.count === 0) return;
+    var D = DL.mode === 'live' ? 0 : DL.addedMs;
+    var sel = selectSlot(D);
+    drawFrame(ctx, sel.chosen);
+    var added = sel.newest.t - sel.chosen.t;
+    DL.lastAddedReal = added;
+    if (DL.rec && DL.mode === 'video') {
+      DL.rec.added.add(added);
+      if (Math.abs(added - D) > DL.tolMs + 0.5) DL.rec.off++;
+      if (sel.underrun) DL.rec.under++;
+      DL.rec.refreshes++;
+    }
+    if (DL.mode === 'live' && DL.guide) drawGuide(ctx);
+  }
+
+  // ---------- 公開 API ----------
+  DL.init = function (videoEl) { DL.video = videoEl; DL.cam = videoEl; };
+  // コマの出どころを切り替える（'camera' か 'replay'）。溜めたコマは捨てる（出どころをまたいで混ぜない）
+  DL.useFeed = function (feed, el) {
+    if (DL.source !== 'camera') return;
+    var target = feed === 'replay' ? el : DL.cam;
+    if (!target) return;
+    DL.feed = feed === 'replay' ? 'replay' : 'camera';
+    DL.video = target;
+    DL.head = -1; DL.count = 0; DL.lastArrival = 0; AN.has = false; MO.has = false; lastVT = -1;
+    armRVFC(target);
+  };
+  DL.setTarget = function (canvas) {
+    DL.target = canvas;
+    DL.tctx = canvas ? canvas.getContext('2d', { alpha: false }) : null;
+    DL.fit();
+  };
+  DL.fit = function () {
+    var c = DL.target; if (!c) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = Math.round(window.innerWidth * dpr), h = Math.round(window.innerHeight * dpr);
+    if (c.width !== w) c.width = w;
+    if (c.height !== h) c.height = h;
+    DL.W = w; DL.H = h; DL.dpr = dpr;
+    computeRect();
+  };
+  DL.reset = function () {
+    DL.srcW = 0; DL.srcH = 0; DL.cap = 0; DL.count = 0; DL.head = -1; DL.slots = [];
+    DL.lastArrival = 0; DL.tsKind = null; DL.liveFps = null; DL._fpsN = 0; DL._fpsT0 = 0; AN.has = false; MO.has = false; lastVT = -1;
+    DL.feed = 'camera'; if (DL.cam) DL.video = DL.cam;
+  };
+  DL.start = function (source) {
+    DL.stop();
+    DL.reset();
+    DL.source = source; DL.running = true; DL.mode = 'black';
+    DL.mirror = source === 'camera';
+    if (source === 'camera') {
+      armRVFC(DL.video);
+    } else {
+      DL.frameIntervalMs = 1000 / 30; DL.tolMs = DL.frameIntervalMs / 2; DL.tsKind = 'demo';
+      DL.demoTimer = setInterval(demoFrame, 1000 / 30);
+    }
+    DL.rafId = requestAnimationFrame(onRaf);
+  };
+  DL.stop = function () {
+    DL.running = false;
+    if (DL.rafId) cancelAnimationFrame(DL.rafId);
+    DL.rafId = 0;
+    if (DL.demoTimer) clearInterval(DL.demoTimer);
+    DL.demoTimer = 0;
+    DL.mode = 'black'; DL.rec = null; DL.guide = false; DL.flashResolve = null; DL.motionLog = null; DL.mouthLog = null;
+    if (DL.tctx) { DL.tctx.fillStyle = '#000000'; DL.tctx.fillRect(0, 0, DL.W, DL.H); }
+  };
+  DL.setAdded = function (ms) { DL.addedMs = Math.max(0, ms); };
+
+  DL.startRecording = function (D) {
+    DL.rec = { D: D, t0: performance.now(), frames: 0, late: 0, maxGap: 0, refreshes: 0, rafGaps: 0,
+      off: 0, under: 0, faults: 0, inFault: false, added: new U.Stat() };
+  };
+  DL.stopRecording = function () {
+    var r = DL.rec; DL.rec = null;
+    if (!r) return null;
+    var a = r.added.summary(), dur = performance.now() - r.t0;
+    return {
+      set_added_ms: r.D, duration_ms: dur,
+      added_real_mean_ms: a.mean, added_real_sd_ms: a.sd, added_real_min_ms: a.min, added_real_max_ms: a.max,
+      cam_frames: r.frames, cam_fps: r.frames / (dur / 1000), late_frames: r.late, max_frame_gap_ms: r.maxGap,
+      refreshes: r.refreshes, raf_gaps: r.rafGaps, off_target_refreshes: r.off, underruns: r.under,
+      frame_faults: r.faults, ts_kind: DL.tsKind
+    };
+  };
+
+  // カメラの fps とタイムスタンプの種類を測り、コマ間隔とバッファを合わせる
+  DL.measureFps = function (ms) {
+    DL.measuring = [];
+    return ZL.run.wait(ms || 2000).then(function () {
+      var m = DL.measuring || []; DL.measuring = null;
+      var out = { n: m.length, ts_kind: DL.tsKind };
+      if (m.length < 5) { out.error = 'few_frames'; return out; }
+      var key = m.every(function (x) { return x.cap != null; }) ? 'cap' : 'arr';
+      var iv = [];
+      for (var i = 1; i < m.length; i++) { var d = m[i][key] - m[i - 1][key]; if (d > 0) iv.push(d); }
+      var med = U.median(iv);
+      var core = iv.filter(function (x) { return x > 0.75 * med && x < 1.25 * med; });
+      var est = core.length >= 5 ? U.mean(core) : med;
+      out.interval_ms = U.r2(est); out.fps = U.r1(1000 / est);
+      out.interval_sd_ms = U.r2(U.sd(iv));
+      out.late_pct = U.r1(100 * iv.filter(function (x) { return x > 1.5 * med; }).length / iv.length);
+      if (isFinite(est) && est > 0) {
+        DL.frameIntervalMs = est; DL.tolMs = est / 2;
+        if (DL.srcW) allocate(DL.srcW, DL.srcH);
+      }
+      return out;
+    });
+  };
+
+  // 画面を白にする。白を描いた画面更新の時刻（rAF の時刻）で解決する
+  DL.flashWhite = function () {
+    return new Promise(function (resolve) { DL.flashResolve = resolve; DL.mode = 'white'; });
+  };
+
+  DL.bufferInfo = function () {
+    return { capacity: DL.cap, slot_w: DL.slotW, slot_h: DL.slotH, src_w: DL.srcW, src_h: DL.srcH,
+      span_ms: DL.spanMs, frame_interval_ms: U.r2(DL.frameIntervalMs), ts_kind: DL.tsKind, rvfc: hasRVFC,
+      slot_bytes_total: DL.cap * DL.slotW * DL.slotH * 4 };
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   再生条件の録画と再生（仮M10）
+   ---------------------------------------------------------------------
+   準備の中でカメラの映像を数秒だけ録り（MediaRecorder）、本番の「再生」試行で
+   その映像を遅延ラインに流す。自分の顔のまま、いまの動きと無関係に動く映像になる。
+   ・録画は端末のメモリの中だけ（Blob）。保存も送信もしない。課題が終わると dispose() で消す。
+   ・MediaRecorder の無いブラウザでは supported() が false → 再生試行は飛ばす（記録に残す）。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+  var RP = ZL.replay = { blob: null, url: null, el: null, mime: '', ms: 0 };
+
+  RP.supported = function () {
+    return typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function';
+  };
+  function pickMime() {
+    var cands = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4;codecs=avc1', 'video/mp4'];
+    for (var i = 0; i < cands.length; i++) {
+      try { if (MediaRecorder.isTypeSupported(cands[i])) return cands[i]; } catch (e) {}
+    }
+    return '';
+  }
+
+  // stream を ms だけ録る。戻り値：{ ok, mime, bytes, ms, error }
+  RP.record = function (stream, ms) {
+    return new Promise(function (resolve) {
+      if (!RP.supported() || !stream) { resolve({ ok: false, error: 'unsupported' }); return; }
+      var mime = pickMime(), rec, chunks = [], t0 = performance.now(), timer = 0, done = false;
+      try { rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); }
+      catch (e) { resolve({ ok: false, error: 'create:' + (e && e.name) }); return; }
+      function finish(err) {
+        if (done) return;
+        done = true; clearTimeout(timer);
+        if (err) { resolve({ ok: false, error: err }); return; }
+        try {
+          RP.dispose();
+          RP.blob = new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' });
+          RP.mime = RP.blob.type; RP.ms = Math.round(performance.now() - t0);
+          resolve({ ok: RP.blob.size > 0, mime: RP.mime, bytes: RP.blob.size, ms: RP.ms, error: RP.blob.size > 0 ? '' : 'empty' });
+        } catch (e2) { resolve({ ok: false, error: 'blob:' + e2 }); }
+      }
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = function () { finish(null); };
+      rec.onerror = function (e) { finish('recorder:' + ((e && e.error && e.error.name) || 'error')); };
+      try { rec.start(250); } catch (e3) { finish('start:' + (e3 && e3.name)); return; }
+      timer = setTimeout(function () { try { if (rec.state !== 'inactive') rec.stop(); else finish(null); } catch (e4) { finish('stop:' + e4); } }, ms);
+      // 中止されたら録画も止める
+      ZL.run.onAbort(function () { try { if (rec.state !== 'inactive') rec.stop(); } catch (e5) {} });
+    });
+  };
+
+  // 録った映像を <video> に載せ、描ける状態にする（ループ・無音）
+  RP.prepare = function (videoEl) {
+    return new Promise(function (resolve) {
+      if (!RP.blob || !videoEl) { resolve(false); return; }
+      RP.el = videoEl;
+      try {
+        if (RP.url) URL.revokeObjectURL(RP.url);
+        RP.url = URL.createObjectURL(RP.blob);
+        videoEl.muted = true; videoEl.loop = true;
+        videoEl.setAttribute('playsinline', '');
+        videoEl.src = RP.url;
+        var settled = false;
+        function ok() { if (settled) return; settled = true; resolve(videoEl.videoWidth > 0); }
+        videoEl.addEventListener('loadeddata', ok, { once: true });
+        videoEl.addEventListener('error', function () { if (!settled) { settled = true; resolve(false); } }, { once: true });
+        videoEl.load();
+        setTimeout(function () { if (!settled) { settled = true; resolve(videoEl.readyState >= 2 && videoEl.videoWidth > 0); } }, 4000);
+      } catch (e) { resolve(false); }
+    });
+  };
+  // 頭から再生する（試行の黒の区間で呼ぶ）
+  RP.play = function () {
+    if (!RP.el) return Promise.resolve(false);
+    try { RP.el.currentTime = 0; } catch (e) {}
+    try { return RP.el.play().then(function () { return true; }, function () { return false; }); }
+    catch (e2) { return Promise.resolve(false); }
+  };
+  RP.pause = function () { try { if (RP.el) RP.el.pause(); } catch (e) {} };
+
+  // 録画を消す（課題の終わりに必ず呼ぶ）
+  RP.dispose = function () {
+    RP.pause();
+    try { if (RP.el) { RP.el.removeAttribute('src'); RP.el.load(); } } catch (e) {}
+    try { if (RP.url) URL.revokeObjectURL(RP.url); } catch (e2) {}
+    RP.url = null; RP.blob = null; RP.mime = ''; RP.ms = 0;
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 参加者画面（全画面）：1 画面に 1 つの指示。大きな文字、使うボタンだけを下に出す。
+   キー（パソコン）：スペース＝つぎへ／はじめる、→＝はい、←＝いいえ、Enter＝かわった、Esc＝やめる。
+   タッチ：画面のボタン。左上の「やめる」は 2 回押すと中止。 */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U;
+  var ST = ZL.stage = { active: false, checks: 0, touch: false };
+  var keyMap = {};
+  var wakeLock = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  ST.init = function () {
+    ST.el = $('stage'); ST.canvas = $('stageCanvas'); ST.layer = $('stLayer');
+    ST.labelEl = $('stLabel'); ST.checksEl = $('stChecks'); ST.mainEl = $('stMain'); ST.subEl = $('stSub');
+    ST.statusEl = $('stStatus'); ST.extraEl = $('stExtra'); ST.btnsEl = $('stButtons'); ST.floatEl = $('stFloat');
+    ST.bannerEl = $('stBanner'); ST.quitEl = $('stQuit');
+    ST.touch = U.isTouch();
+    window.addEventListener('resize', function () { if (ST.active) { ZL.delay.fit(); if (ST.onResize) ST.onResize(); } });
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keyup', onKeyUp, true);
+    document.addEventListener('visibilitychange', function () {
+      if (!ST.active) return;
+      if (document.hidden) ZL.run.abort('hidden');
+      else requestWake();
+    });
+    ST.quitEl.addEventListener('click', onQuit);
+  };
+
+  function onKey(e) {
+    if (!ST.active) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (e.code === 'Escape') { e.preventDefault(); ZL.run.abort('esc'); return; }
+    // 0.2.1：スペース／Enter はこの画面の割り当て（keyMap）でだけ使う。ブラウザの既定（フォーカスの残った
+    // ボタンを押す・ページを送る）は常に止める。「やめる」にフォーカスが残っていてもキーでは押されない
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') e.preventDefault();
+    var h = keyMap[e.code];
+    if (h) { e.preventDefault(); if (!e.repeat) h(e.timeStamp, 'key'); }
+  }
+  function onKeyUp(e) {
+    if (!ST.active) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') e.preventDefault();
+  }
+
+  var quitArmed = 0, quitTimer = 0;
+  function onQuit(e) {
+    e.preventDefault();
+    try { ST.quitEl.blur(); } catch (err) {}   // フォーカスを残さない（0.2.1）
+    var now = performance.now();
+    if (quitArmed && now - quitArmed < 2500) {
+      quitArmed = 0; clearTimeout(quitTimer); ST.quitEl.textContent = 'やめる';
+      ZL.run.abort('quit');
+      return;
+    }
+    quitArmed = now;
+    ST.quitEl.textContent = 'もう一度で やめる';
+    clearTimeout(quitTimer);
+    quitTimer = setTimeout(function () { quitArmed = 0; ST.quitEl.textContent = 'やめる'; }, 2500);
+  }
+
+  function requestWake() {
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }, function () {});
+      }
+    } catch (e) {}
+  }
+  function releaseWake() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+
+  // 全画面（利用者の操作の中で呼ぶ。できなければそのまま）
+  ST.fullscreen = function () {
+    try {
+      var el = document.documentElement;
+      if (el.requestFullscreen && !document.fullscreenElement) return el.requestFullscreen({ navigationUI: 'hide' }).catch(function () {});
+    } catch (e) {}
+    return Promise.resolve();
+  };
+  function exitFullscreen() { try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) {} }
+
+  ST.show = function (opts) {
+    opts = opts || {};
+    ST.active = true;
+    ST.el.hidden = false;
+    document.body.classList.add('staging');
+    ST.checks = 0; renderChecks(false);
+    ST.setBanner(opts.banner || '');
+    ST.over(false);
+    ZL.delay.setTarget(ST.canvas);
+    ST.clear();
+    ST.cursor(true);
+    requestWake();
+  };
+  ST.hide = function () {
+    ST.active = false;
+    ST.clear();
+    ST.floatEl.innerHTML = '';
+    ST.el.hidden = true;
+    document.body.classList.remove('staging');
+    ST.onResize = null;
+    releaseWake();
+    exitFullscreen();
+  };
+  ST.cursor = function (show) { ST.el.classList.toggle('nocursor', !show); };
+  // 映像の上に文字を出すとき（準備の段階）は、文字を上寄せにして下地を付ける
+  ST.over = function (on) { ST.layer.classList.toggle('over', !!on); };
+  ST.setBanner = function (text) { ST.bannerEl.textContent = text || ''; ST.bannerEl.hidden = !text; };
+
+  ST.text = function (main, sub, label) {
+    ST.mainEl.className = 'st-main';
+    ST.mainEl.textContent = main || '';
+    ST.subEl.textContent = sub || '';
+    ST.labelEl.textContent = label || '';
+  };
+  ST.statement = function (text, label) {
+    ST.mainEl.className = 'st-main st-statement';
+    ST.mainEl.textContent = text || '';
+    ST.subEl.textContent = '';
+    ST.labelEl.textContent = label || '';
+  };
+  ST.status = function (text, kind) {
+    ST.statusEl.textContent = text || '';
+    ST.statusEl.className = 'st-status' + (kind ? ' ' + kind : '');
+  };
+  ST.clear = function () {
+    ST.mainEl.textContent = ''; ST.subEl.textContent = ''; ST.labelEl.textContent = '';
+    ST.statusEl.textContent = ''; ST.statusEl.className = 'st-status';
+    ST.extraEl.innerHTML = ''; ST.btnsEl.innerHTML = ''; ST.btnsEl.className = 'st-buttons';
+    keyMap = {};
+  };
+
+  // 準備の手順ができたときだけ付けるチェック（回答には付けない。仮S2）
+  ST.check = function () { ST.checks++; renderChecks(true); };
+  function renderChecks(pop) {
+    ST.checksEl.textContent = ST.checks ? '✔ ' + ST.checks : '';
+    if (pop) { ST.checksEl.classList.remove('pop'); void ST.checksEl.offsetWidth; ST.checksEl.classList.add('pop'); }
+  }
+
+  // ボタンを出して押されるのを待つ
+  // buttons: [{id, label, key:[codes], keyLabel, kind}]
+  // opts: { timeoutMs, fromPaint, layout } → {id, t, via, shownAt}。中止で reject
+  ST.ask = function (buttons, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve, reject) {
+      var done = false, timer = 0, shownAt = performance.now(), offAbort = function () {};
+      function cleanup() {
+        clearTimeout(timer); offAbort(); keyMap = {}; ST.btnsEl.innerHTML = ''; ST.btnsEl.className = 'st-buttons';
+        try { if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur(); } catch (err) {}
+      }
+      function finish(id, t, via) {
+        if (done) return;
+        done = true; cleanup();
+        resolve({ id: id, t: t, via: via, shownAt: shownAt });
+      }
+      offAbort = ZL.run.onAbort(function () {
+        if (done) return;
+        done = true; cleanup();
+        reject(ZL.run.error());
+      });
+      ST.btnsEl.innerHTML = '';
+      ST.btnsEl.className = 'st-buttons' + (opts.layout ? ' ' + opts.layout : '');
+      keyMap = {};
+      // 7 件法：ボタンの列のすぐ下に両端の言葉を置く
+      var holder = ST.btnsEl;
+      if (opts.ends) {
+        var wrap = document.createElement('div'); wrap.className = 'st-scale';
+        holder = document.createElement('div'); holder.className = 'st-scale-row';
+        var ends = document.createElement('div'); ends.className = 'st-scale-ends';
+        var l = document.createElement('span'); l.textContent = opts.ends[0];
+        var r = document.createElement('span'); r.textContent = opts.ends[1];
+        ends.appendChild(l); ends.appendChild(r);
+        wrap.appendChild(holder); wrap.appendChild(ends);
+        ST.btnsEl.appendChild(wrap);
+      }
+      buttons.forEach(function (b) {
+        var el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'st-btn' + (b.kind ? ' ' + b.kind : '');
+        var lab = document.createElement('span');
+        lab.className = 'st-btn-label'; lab.textContent = b.label;
+        el.appendChild(lab);
+        if (b.keyLabel && !ST.touch) {
+          var k = document.createElement('span');
+          k.className = 'st-key'; k.textContent = b.keyLabel;
+          el.appendChild(k);
+        }
+        el.addEventListener('pointerdown', function (e) {
+          if (e.button != null && e.button > 0) return;
+          e.preventDefault(); e.stopPropagation();
+          finish(b.id, e.timeStamp, e.pointerType || 'pointer');
+        });
+        el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); finish(b.id, e.timeStamp, 'click'); });
+        holder.appendChild(el);
+        (b.key || []).forEach(function (code) { keyMap[code] = function (t, via) { finish(b.id, t, via); }; });
+      });
+      function startTimer() {
+        if (opts.timeoutMs) timer = setTimeout(function () { finish('timeout', performance.now(), 'timeout'); }, opts.timeoutMs);
+      }
+      if (opts.fromPaint) U.afterPaint().then(function (t) { if (done) return; shownAt = t; startTimer(); if (ZL.dev.auto) ZL.dev.press(buttons, finish); });
+      else { startTimer(); if (ZL.dev.auto) ZL.dev.press(buttons, finish); }
+    });
+  };
+
+  // 「つぎへ」1 つだけの画面
+  ST.next = function (main, sub, label, btnLabel) {
+    ST.text(main, sub, label);
+    return ST.ask([{ id: 'next', label: btnLabel || 'つぎへ', key: ['Space'], keyLabel: 'スペース', kind: 'primary' }]);
+  };
+
+  // 試行中に押す丸いボタン（上げ下げの「かわった」）。押したときの手応えは出さない（v3 の仮18）
+  ST.floatButton = function (label, codes, onPress) {
+    var el = document.createElement('button');
+    el.type = 'button'; el.className = 'st-float-btn'; el.textContent = label;
+    el.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); onPress(e.timeStamp, e.pointerType || 'pointer'); });
+    ST.floatEl.appendChild(el);
+    codes.forEach(function (c) { keyMap[c] = function (t, via) { onPress(t, via); }; });
+    return function remove() {
+      el.remove();
+      codes.forEach(function (c) { delete keyMap[c]; });
+    };
+  };
+
+  // 自由記述（なくても進める）
+  ST.freeText = function (main, sub) {
+    ST.text(main, sub, '');
+    var ta = document.createElement('textarea');
+    ta.id = 'stFreeText'; ta.className = 'st-text'; ta.rows = 4; ta.maxLength = 1000;
+    ta.setAttribute('aria-label', main);
+    ST.extraEl.innerHTML = '';
+    ST.extraEl.appendChild(ta);
+    ST.cursor(true);
+    return ST.ask([
+      { id: 'skip', label: 'とばす', kind: '' },
+      { id: 'save', label: '記録する', kind: 'primary' }
+    ]).then(function (r) {
+      var text = r.id === 'save' ? ta.value.trim() : '';
+      ST.extraEl.innerHTML = '';
+      return text;
+    });
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 回答の画面
+   ・3 つの文：1 つずつ、順番は乱数（シード付き）。「はい／いいえ」、1 文 5 秒（v3 と同じ）。
+     時間内に押さなければ空欄で記録して次へ。反応時間は文が画面に出たおよその時刻から。
+   ・7 件法：時間制限なし。 */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U, R = ZL.run;
+  var A = ZL.ask = {};
+
+  A.statements = async function (items, opts) {
+    var ST = ZL.stage;
+    var order = U.shuffle(items.slice(), opts.rnd);
+    var out = { q_order: order.map(function (i) { return i.key; }).join('>') };
+    ST.cursor(true);
+    for (var i = 0; i < order.length; i++) {
+      var it = order[i];
+      ST.statement(it.text, opts.label || '');
+      var r = await ST.ask([
+        { id: 'no', label: 'いいえ', key: ['ArrowLeft'], keyLabel: '←', kind: 'answer' },
+        { id: 'yes', label: 'はい', key: ['ArrowRight'], keyLabel: '→', kind: 'answer' }
+      ], { timeoutMs: opts.limitMs, fromPaint: true });
+      if (r.id === 'timeout') { out['resp_' + it.key] = ''; out['rt_' + it.key] = ''; }
+      else { out['resp_' + it.key] = r.id === 'yes' ? 1 : 0; out['rt_' + it.key] = Math.round(r.t - r.shownAt); }
+      ST.clear();
+      await R.wait(opts.gapMs);
+    }
+    return out;
+  };
+
+  // 1 文だけ（打ち切りプローブ）。戻り値 { resp: 1|0|'', rt }
+  A.one = async function (item, opts) {
+    var ST = ZL.stage;
+    ST.cursor(true);
+    ST.statement(item.text, opts.label || '');
+    var r = await ST.ask([
+      { id: 'no', label: 'いいえ', key: ['ArrowLeft'], keyLabel: '←', kind: 'answer' },
+      { id: 'yes', label: 'はい', key: ['ArrowRight'], keyLabel: '→', kind: 'answer' }
+    ], { timeoutMs: opts.limitMs, fromPaint: true });
+    ST.clear();
+    if (r.id === 'timeout') return { resp: '', rt: '' };
+    return { resp: r.id === 'yes' ? 1 : 0, rt: Math.round(r.t - r.shownAt) };
+  };
+
+  A.scale = async function (items, opts) {
+    var ST = ZL.stage;
+    var out = {};
+    ST.cursor(true);
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      ST.statement(it.text, opts.label || '');
+      var btns = [];
+      for (var v = 1; v <= 7; v++) btns.push({ id: String(v), label: String(v), key: ['Digit' + v, 'Numpad' + v], kind: 'scale' });
+      var r = await ST.ask(btns, { fromPaint: true, layout: 'scale', ends: [opts.left, opts.right] });
+      out[it.id] = parseInt(r.id, 10);
+      out['rt_' + it.id] = Math.round(r.t - r.shownAt);
+      ST.clear();
+      await R.wait(opts.gapMs || 250);
+    }
+    return out;
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   機材遅延の自動推定（試験的。仮L1）
+   ---------------------------------------------------------------------
+   画面を短く白く光らせ、その光で明るくなった顔をカメラが拾うまでの時間を測る。
+     遅延 ≈ （白が初めて写ったコマの時刻）−（白が画面に出た時刻）
+   ・白が画面に出た時刻＝白を描いた画面更新（rAF）の時刻＋1 リフレッシュ、と置く。
+   ・コマの時刻は「アプリが受け取った時刻」（arr）と、あれば「撮影時刻」（cap）の両方で出す。
+   ・明るさの変化が中間（50%）を越えた点を、前後のコマの直線補間で求める。
+   この値は「画面 → 顔 → カメラ → アプリ」の一周。鏡の映像の遅延（顔の動き → 画面）に
+   近いはずだが、ディスプレイの応答や露出の扱いで差が出うる。スマホのスローモーション
+   撮影（v3 の方法）と突き合わせるまでは参考値として扱う。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U, R = ZL.run;
+  var L = ZL.latency = {};
+
+  // 1 回の点滅を調べる。光のせいで明るくなったと言えるのは、次の 3 つがそろうときだけ：
+  //   ① 点滅の前の明るさが安定している（ばらつきが段差の 1/4 未満）
+  //   ② 上がった点が、白を出してから 10〜400 ms の間にある
+  //   ③ 明るい区間の長さが、白を出した長さ（whiteMs）に ±120 ms で合う（光の形どおりに上がって下がる）
+  // どれかが欠けたら無効（部屋の明かりの変化や、顔の動きによる明るさの変化をはじく）
+  function analyzeOne(frames, tPresent, whiteMs, minStep) {
+    var pre = frames.filter(function (f) { return f.arr >= tPresent - 450 && f.arr < tPresent - 10; });
+    var win = frames.filter(function (f) { return f.arr >= tPresent - 450 && f.arr <= tPresent + whiteMs + 500; });
+    var post = win.filter(function (f) { return f.arr >= tPresent && f.arr <= tPresent + whiteMs + 300; });
+    if (pre.length < 3 || post.length < 3) return { valid: false, why: 'few_frames' };
+    var preL = pre.map(function (f) { return f.luma; });
+    var lo = U.median(preL);
+    var hi = Math.max.apply(null, post.map(function (f) { return f.luma; }));
+    var step = hi - lo, out = { valid: false, lo: U.r1(lo), hi: U.r1(hi), step: U.r1(step) };
+    if (step < minStep) { out.why = 'small_step'; return out; }
+    var preSd = U.sd(preL);
+    if (isFinite(preSd) && preSd > step / 4) { out.why = 'unstable_baseline'; out.pre_sd = U.r1(preSd); return out; }
+    var thr = lo + 0.5 * step, rise = null, riseCap = null, fall = null;
+    for (var i = 1; i < win.length; i++) {
+      var a = win[i - 1], b = win[i];
+      if (rise === null) {
+        if (b.arr < tPresent || b.luma < thr || a.luma >= thr) continue;
+        var frac = (b.luma === a.luma) ? 1 : U.clamp((thr - a.luma) / (b.luma - a.luma), 0, 1);
+        rise = a.arr + frac * (b.arr - a.arr);
+        if (a.cap != null && b.cap != null) riseCap = a.cap + frac * (b.cap - a.cap);
+        out.first_frame_arr_ms = U.r1(b.arr - tPresent);
+      } else if (a.luma >= thr && b.luma < thr) {
+        var f2 = (a.luma === b.luma) ? 0 : U.clamp((a.luma - thr) / (a.luma - b.luma), 0, 1);
+        fall = a.arr + f2 * (b.arr - a.arr);
+        break;
+      }
+    }
+    if (rise === null) { out.why = 'no_rise'; return out; }
+    out.lat_arr_ms = U.r1(rise - tPresent);
+    if (riseCap != null) out.lat_cap_ms = U.r1(riseCap - tPresent);
+    if (rise - tPresent < 10 || rise - tPresent > 400) { out.why = 'out_of_window'; return out; }
+    if (fall === null) { out.why = 'no_fall'; return out; }
+    out.pulse_ms = U.r1(fall - rise);
+    if (Math.abs((fall - rise) - whiteMs) > 120) { out.why = 'pulse_mismatch'; return out; }
+    out.valid = true; out.why = '';
+    return out;
+  }
+
+  L._analyzeOne = analyzeOne;   // 単体テスト用
+
+  L.calibrate = async function (S) {
+    var ST = ZL.stage, DL = ZL.delay, cfg = ZL.CONFIG.latency;
+    var n = cfg.flashes[S.run_mode === 'check' ? 'check' : 'normal'];
+    await ST.next('画面が 何回か 白く 光ります', '顔を 画面に 向けたまま、うごかないで ください。\n（約' + Math.ceil(n * 1.8) + '秒）', '', 'はじめる');
+    ST.clear(); ST.over(false); ST.cursor(false);
+    var frames = [];
+    var off = DL.addListener(function (a) { frames.push(a); });
+    var flashes = [];
+    try {
+      DL.mode = 'black';
+      await R.frames(1500);
+      for (var i = 0; i < n; i++) {
+        var drawT = await DL.flashWhite();
+        await R.frames(cfg.whiteMs);
+        DL.mode = 'black';
+        flashes.push({ draw_t: drawT });
+        await R.frames(U.lerp(cfg.blackMinMs, cfg.blackMaxMs, Math.random()));
+      }
+    } finally {
+      off();
+      DL.mode = 'black';
+    }
+    var refresh = (ZL.env && ZL.env.refresh_ms) || 16.7;
+    var per = flashes.map(function (f) {
+      var r = analyzeOne(frames, f.draw_t + refresh, cfg.whiteMs, cfg.minStep);
+      r.draw_t = U.r1(f.draw_t);
+      return r;
+    });
+    var ok = per.filter(function (p) { return p.valid; });
+    var arr = ok.map(function (p) { return p.lat_arr_ms; });
+    var cap = ok.filter(function (p) { return p.lat_cap_ms != null; }).map(function (p) { return p.lat_cap_ms; });
+    S.latency_calib = {
+      method: 'screen_flash_loop', provisional: '仮L1', refresh_ms: U.r2(refresh),
+      n_flashes: n, n_valid: ok.length,
+      median_arr_ms: ok.length ? U.r1(U.median(arr)) : null,
+      median_cap_ms: cap.length ? U.r1(U.median(cap)) : null,
+      sd_arr_ms: ok.length > 1 ? U.r1(U.sd(arr)) : null,
+      per_flash: per
+    };
+    S.setup.push({ step: 'latency_flash', ok: ok.length >= Math.ceil(n / 2), t: U.r1(U.now()) });
+    if (ok.length >= Math.ceil(n / 2)) ST.check();
+    return S.latency_calib;
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   かがみ：前面カメラ／ウェブカメラで顔を遅らせて映し、v3 と同じ 3 文で答える
+   ---------------------------------------------------------------------
+   準備（音 → カメラ → 顔の位置 → 口の動き →［機材遅延の推定］→ 音に合わせる練習 →［再生用の録画］）
+   → 練習 1 試行
+   → 本番 C：一定の付加遅延（v3 ブロック C の形）。再生条件（仮M10）を乱数の位置に混ぜる
+   → 本番 P：打ち切りプローブ（映像を t 秒で止め、文を 1 つだけ。仮P1）
+   →［上げ下げ試行 R（v3 ブロック R の考え方）］→ 自由記述
+   本番中は条件（遅延の値・順序・再生かどうか）を画面に出さない。中止を含めて全試行を記録する。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U, R = ZL.run;
+  var M = ZL.mirror = {};
+
+  function T(S) { return ZL.CONFIG.mirror.timing[S.run_mode === 'check' ? 'check' : 'normal']; }
+  function modeKey(S) { return S.run_mode === 'check' ? 'check' : 'normal'; }
+  function dots(n, total) { var s = []; for (var i = 0; i < total; i++) s.push(i < n ? '●' : '○'); return s.join(' '); }
+  function bpmOf(S) { return (S && S.opts && S.opts.selfPaced) ? null : ZL.CONFIG.mirror.rhythm.bpm; }
+
+  // 所要時間の見込み（分）。ホームの表示用（設定は既定どおりと置く）
+  M.minutes = function (mode) {
+    var c = ZL.CONFIG.mirror, k = mode === 'check' ? 'check' : 'normal', t = c.timing[k];
+    var perC = 2500 + t.blackMs + t.videoMs + 7500 + t.restMs;
+    var nC = c.practiceTrials + c.levelsAddedMs.length * c.repsPerLevel + c.replay.trials;
+    var pc = c.probe[k], nP = pc.tSec.length * pc.statements.length * pc.reps;
+    var perP = 2500 + t.blackMs + 2800 + t.probeRestMs;
+    var sumT = 0; pc.tSec.forEach(function (s) { sumT += s * 1000; });
+    var sp = c.ramp.speedMsPerS[k];
+    var perR = 5000 + t.rampBlackMs + (c.ramp.highMs - c.ramp.lowMs) / sp * 1000 + t.restMs;
+    var total = 100000 + c.replay.recordMs[k] + nC * perC + nP * perP + sumT * pc.statements.length * pc.reps + c.ramp.trials * perR + 30000;
+    return Math.max(1, Math.round(total / 60000));
+  };
+
+  function baseRow(S, trial, practice, block) {
+    return {
+      app_version: ZL.VERSION.app, session_id: S.id, participant_id: S.participant_id, session_no: S.session_no,
+      module: 'mirror', run_mode: S.run_mode, source: S.source, trial: trial, practice: practice ? 1 : 0, block: block,
+      video_source: 'live', seed: S.seed, aborted: 0, abort_reason: ''
+    };
+  }
+  function recFields(rec) {
+    if (!rec) return {};
+    return {
+      added_real_mean_ms: U.r1(rec.added_real_mean_ms), added_real_sd_ms: U.r1(rec.added_real_sd_ms),
+      cam_fps: U.r1(rec.cam_fps), late_frames: rec.late_frames, max_frame_gap_ms: U.r1(rec.max_frame_gap_ms),
+      underruns: rec.underruns, off_target_refreshes: rec.off_target_refreshes, frame_faults: rec.frame_faults, ts_kind: rec.ts_kind
+    };
+  }
+  // 口の指標（仮M11）：映像の区間の口の明るさの時系列から、拍の周期の成分の強さと動きの大きさ
+  function mouthFields(S, log) {
+    var out = { mouth_motion_video: '', mouth_sync_video: '', mouth_freq_hz: '', rhythm_bpm: '' };
+    if (!log || !log.length) return out;
+    var t0 = log[0].t, series = log.map(function (x) { return { t: x.t - t0, v: x.v }; });
+    out.mouth_motion_video = U.r2(U.mean(log.map(function (x) { return x.m; })));
+    var bpm = bpmOf(S);
+    if (bpm) {
+      var f0 = bpm / 120;                       // 1 往復 = 2 拍
+      out.rhythm_bpm = bpm;
+      out.mouth_freq_hz = U.r3(f0);
+      out.mouth_sync_video = U.r3(U.rhythmIndex(series, f0));
+    } else {
+      var d = U.dominantFreq(series, 0.1, 1.5, 0.05);
+      out.mouth_freq_hz = U.r3(d.f);
+      out.mouth_sync_video = U.r3(d.index);
+    }
+    return out;
+  }
+
+  // ---------- 準備 ----------
+  async function soundCheck(S) {
+    var ST = ZL.stage, AU = ZL.audio;
+    var ok = await AU.ensure();
+    if (!ok) {
+      S.setup.push({ step: 'sound', ok: false, why: 'no_audio' });
+      await ST.next('音が 出せません', 'このブラウザでは 音を 鳴らせないため、音なしで すすみます。', '', 'つぎへ');
+      return;
+    }
+    for (;;) {
+      ST.text('音が 聞こえるか たしかめます', '高い音と 低い音が 交互に 鳴っています。\n小さいときは 端末の 音量を 上げてください。', '');
+      AU.start(bpmOf(S) || ZL.CONFIG.mirror.rhythm.bpm);
+      var r;
+      try {
+        r = await ST.ask([
+          { id: 'no', label: '聞こえない' },
+          { id: 'ok', label: '聞こえた', key: ['Space'], keyLabel: 'スペース', kind: 'primary' }
+        ]);
+      } finally { AU.stop(); }
+      if (r.id === 'ok') break;
+      await ST.next('音を たしかめて ください', '端末の 音量と、消音（マナーモード）の 設定を たしかめてから、もう一度 ためします。', '', 'もう一度');
+    }
+    S.setup.push({ step: 'sound', ok: true, t: U.r1(U.now()) });
+    ST.check();
+  }
+
+  function cameraHelp(err) {
+    var n = err && err.name;
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'カメラの 使用が 許可されていないか、このページでは カメラが 使えない 設定です。';
+    if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'この端末で 使える カメラが 見つかりません。';
+    if (n === 'NotReadableError') return 'カメラが ほかの アプリで 使われているかも しれません。';
+    if (err && err.code === 'unsupported') return 'このブラウザでは カメラを 使えません。';
+    return 'カメラを 開けませんでした。';
+  }
+
+  async function startCamera(S) {
+    var ST = ZL.stage, CAM = ZL.camera, DL = ZL.delay;
+    await ST.next('カメラを つかいます', '顔を うつすために カメラを つかいます。\n映像は 画面に うつすだけで、外へは 送りません。\n（準備で 10 秒ほど 録った 映像を、課題の 中で 使います。課題が おわると 消えます）', '', 'カメラを つける');
+    ST.text('カメラを 準備しています', 'カメラの 使用を たずねられたら「許可」を 選んでください。', '');
+    var err = null;
+    try { S.camera = await CAM.open(); S.source = 'camera'; }
+    catch (e) { err = e; }
+    if (err) {
+      S.events.push({ t: U.r1(U.now()), type: 'camera_error', name: err.name || '', message: String(err.message || err) });
+      if (!S.opts.allowDemo) {
+        await ST.next('カメラを つかえません', cameraHelp(err), '', 'おわる');
+        R.abort('camera'); throw R.error();
+      }
+      ST.text('カメラを つかえません', cameraHelp(err) + '\n画面の 流れだけを、合成した 顔（デモ映像）で たしかめられます。\nデモの 回答は 動作確認用として 記録されます。', '');
+      var r = await ST.ask([
+        { id: 'end', label: 'おわる' },
+        { id: 'demo', label: 'デモで すすむ', key: ['Space'], keyLabel: 'スペース', kind: 'primary' }
+      ]);
+      if (r.id !== 'demo') { R.abort('camera'); throw R.error(); }
+      S.source = 'demo';
+      ST.setBanner(S.run_mode === 'check' ? '短縮・デモ映像' : 'デモ映像（カメラなし）');
+    }
+    DL.start(S.source);
+    ST.over(true);
+    DL.mode = 'live';
+    ST.text('映像を 準備しています', '', '');
+    if (S.source === 'camera') S.camera_fps = await DL.measureFps(2000);
+    else { await R.wait(600); S.camera_fps = { fps: 30, interval_ms: 33.33, ts_kind: 'demo' }; }
+    S.buffer = DL.bufferInfo();
+  }
+
+  async function framing(S) {
+    var ST = ZL.stage, DL = ZL.delay, c = ZL.CONFIG.mirror.setup;
+    ST.over(true); DL.mode = 'live'; DL.guide = true;
+    ST.text('顔が 円の 中に はいるように', (ST.touch ? 'スマホを 立てかけて、' : '') + '画面を 正面から 見てください。明るい 場所が むいています。', '');
+    var okSince = null, t0 = U.now(), lastMsg = null;
+    await R.until(function (t) {
+      var l = DL.lastLuma, ok = l >= c.lumaMin && l <= c.lumaMax;
+      if ((ZL.dev.auto || S.source === 'demo') && U.now() - t0 > 900) ok = true;
+      var msg = !isFinite(l) ? '' : (l < c.lumaMin ? '少し 暗いです' : (l > c.lumaMax ? '明るすぎます' : '明るさ よし'));
+      if (msg !== lastMsg) { ST.status(msg, ok ? 'good' : ''); lastMsg = msg; }
+      if (!ok) { okSince = null; return false; }
+      if (okSince === null) okSince = t;
+      return t - okSince >= c.holdMs;
+    });
+    ST.status('✔ できました', 'good');
+    ST.check();
+    S.setup.push({ step: 'framing', ok: true, luma: U.r1(DL.lastLuma), t: U.r1(U.now()) });
+    await R.wait(700);
+    DL.guide = false;
+    ST.status('');
+  }
+
+  async function mouthCheck(S) {
+    var ST = ZL.stage, DL = ZL.delay, c = ZL.CONFIG.mirror.setup;
+    ST.over(true); DL.mode = 'live';
+    ST.text('口を 大きく 3回、あけて しめて ください', 'ゆっくりで かまいません。', '');
+    var peaks = 0, hist = [], armed = true, lastPeak = 0, t0 = U.now();
+    var off = DL.addListener(function (a) {
+      hist.push(a.motion); if (hist.length > 45) hist.shift();
+      if (hist.length < 8) return;
+      var thr = Math.max(1.2, U.median(hist) * 2.2 + 0.6);
+      if (armed && a.motion > thr && a.arr - lastPeak > c.refractoryMs) { peaks++; armed = false; lastPeak = a.arr; }
+      else if (!armed && a.motion < thr * 0.6) armed = true;
+    });
+    try {
+      await R.until(function () {
+        if ((ZL.dev.auto || S.source === 'demo') && U.now() - t0 > 1500) peaks = Math.max(peaks, c.peaks);
+        ST.status(dots(Math.min(peaks, c.peaks), c.peaks), peaks >= c.peaks ? 'good' : '');
+        return peaks >= c.peaks;
+      });
+    } finally { off(); }
+    ST.check();
+    S.setup.push({ step: 'mouth', ok: true, peaks: peaks, t: U.r1(U.now()) });
+    await R.wait(700);
+    ST.status('');
+  }
+
+  // 音に合わせる練習（40 bpm。仮M9）。自分のペースのときは音なしで同じ長さ
+  async function rhythm(S) {
+    var ST = ZL.stage, DL = ZL.delay, AU = ZL.audio, rc = ZL.CONFIG.mirror.rhythm;
+    var bpm = bpmOf(S), ms = rc.practiceBeats * 60000 / rc.bpm;
+    ST.over(true); DL.mode = 'live';
+    if (bpm) {
+      await ST.next('音に あわせて 口を うごかします', '高い音で あける ・ 低い音で しめる\n（ゆっくりの 音です。' + (rc.practiceBeats / 2) + ' 往復 ためします）', '', 'ためしてみる');
+      ST.text('高い音で あける', '低い音で しめる', '');
+    } else {
+      await ST.next('自分の ペースで 口を うごかします', 'ゆっくり あけて、ゆっくり しめる（' + rc.selfPacedHint + '）\n（' + Math.round(ms / 1000) + ' 秒 ためします）', '', 'ためしてみる');
+      ST.text('ゆっくり あけて', 'ゆっくり しめる', '');
+    }
+    DL.motionLog = []; DL.mouthLog = [];
+    if (bpm) AU.start(bpm);
+    try { await R.wait(ms); }
+    finally { AU.stop(); }
+    var mot = DL.motionLog || [], ml = DL.mouthLog || []; DL.motionLog = null; DL.mouthLog = null;
+    var mf = mouthFields(S, ml);
+    S.setup.push({ step: 'rhythm', ok: true, bpm: bpm, fps: DL.liveFps ? U.r1(DL.liveFps) : null,
+      motion_mean: U.r2(U.mean(mot)), mouth_motion: mf.mouth_motion_video, mouth_sync: mf.mouth_sync_video, mouth_freq_hz: mf.mouth_freq_hz,
+      t: U.r1(U.now()) });
+    ST.check();
+    ST.over(false); DL.mode = 'black';
+  }
+
+  // 再生条件のための録画（仮M10）。いろいろな速さで口を動かしてもらい、拍と無関係な動きを録る
+  async function recordForReplay(S) {
+    var ST = ZL.stage, DL = ZL.delay, RP = ZL.replay, c = ZL.CONFIG.mirror.replay, ms = c.recordMs[modeKey(S)];
+    S.replay = { ok: false, why: '', ms: ms };
+    if (!S.opts.replay || c.trials <= 0) { S.replay.why = 'off'; return; }
+    if (S.source !== 'camera') { S.replay.why = 'no_camera'; return; }
+    if (!RP.supported()) { S.replay.why = 'unsupported'; S.events.push({ t: U.r1(U.now()), type: 'replay_unsupported' }); return; }
+    ST.over(true); DL.mode = 'live';
+    await ST.next('口を いろいろな 速さで うごかします', '速くしたり、ゆっくりしたり、とまったり。\n（' + Math.round(ms / 1000) + ' 秒）', '', 'はじめる');
+    ST.text('速くしたり、ゆっくりしたり', 'とまったり', '');
+    var t0 = U.now();
+    var rec = ZL.camera.stream ? RP.record(ZL.camera.stream, ms) : Promise.resolve({ ok: false, error: 'no_stream' });
+    await R.until(function () {
+      var left = Math.max(0, Math.ceil((ms - (U.now() - t0)) / 1000));
+      ST.status(left ? 'あと ' + left + ' 秒' : '', '');
+      return U.now() - t0 >= ms + 150;
+    });
+    var r = await rec;
+    ST.status('');
+    if (r.ok) {
+      var ready = await RP.prepare(document.getElementById('replayVideo'));
+      S.replay = { ok: ready, why: ready ? '' : 'not_playable', mime: r.mime, bytes: r.bytes, ms: r.ms };
+      if (!ready) S.events.push({ t: U.r1(U.now()), type: 'replay_not_playable', mime: r.mime });
+    } else {
+      S.replay = { ok: false, why: r.error || 'record_failed', ms: ms };
+      S.events.push({ t: U.r1(U.now()), type: 'replay_record_failed', error: r.error || '' });
+    }
+    S.setup.push({ step: 'replay_record', ok: S.replay.ok, why: S.replay.why, t: U.r1(U.now()) });
+    if (S.replay.ok) ST.check();
+    ST.over(false); DL.mode = 'black';
+  }
+
+  // ---------- 「あと何回」（仮S3）。prog = { i: 本番の何回目（1 から）, n: 本番の全回数 }。練習は null ----------
+  function progLabel(prog) { return prog ? prog.i + ' / ' + prog.n : '練習'; }
+  function progLeft(prog) { return prog ? 'あと ' + (prog.n - prog.i + 1) + ' 回' : ''; }   // この回を含む
+  function progAfter(prog) {
+    if (!prog) return '';
+    var k = prog.n - prog.i;
+    return k > 0 ? 'のこり ' + k + ' 回' : 'これで さいごでした';
+  }
+  // 本番の所要時間の見込み（分）
+  function mainMinutes(S, nC, planP, nR) {
+    var c = ZL.CONFIG.mirror, t = T(S), sp = c.ramp.speedMsPerS[modeKey(S)];
+    var perC = 2000 + t.blackMs + t.videoMs + 3 * 2200 + t.restMs;
+    var sumP = 0; planP.forEach(function (p) { sumP += 2000 + t.blackMs + p.t + 2500 + t.probeRestMs; });
+    var perR = 3000 + t.rampBlackMs + (c.ramp.highMs - c.ramp.lowMs) / sp * 1000 + t.restMs;
+    return Math.max(1, Math.round((nC * perC + sumP + nR * perR) / 60000));
+  }
+
+  // ---------- 試行 ----------
+  // 映像の出どころを再生に切り替える／戻す（再生試行の黒の区間で呼ぶ）
+  async function feedReplay(on) {
+    var DL = ZL.delay, RP = ZL.replay;
+    if (on) { DL.useFeed('replay', RP.el); await RP.play(); }
+    else { RP.pause(); DL.useFeed('camera'); }
+  }
+
+  // C：一定の付加遅延（v3 ブロック C の形：黒＋音 → 映像＋音 → 3 文 → 休み）。o.replay で再生条件
+  async function trialC(S, label, D, prog, rnd, o) {
+    var ST = ZL.stage, DL = ZL.delay, AU = ZL.audio, t = T(S), cfg = ZL.CONFIG;
+    o = o || {};
+    var practice = !prog, replay = !!o.replay;
+    var row = baseRow(S, label, practice, 'C');
+    row.added_set_ms = D; row.video_source = replay ? 'replay' : 'live';
+    try {
+      ST.over(false); DL.mode = 'black';
+      ST.status(progLeft(prog), 'count');
+      await ST.next('じゅんびが できたら はじめます', '', progLabel(prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      DL.setAdded(D);
+      if (replay) await feedReplay(true);
+      AU.start(bpmOf(S));
+      await R.frames(t.blackMs);
+      DL.motionLog = []; DL.mouthLog = [];
+      DL.startRecording(D);
+      DL.mode = 'video';
+      await R.frames(t.videoMs);
+      DL.mode = 'black';
+      var rec = DL.stopRecording();
+      AU.stop();
+      if (replay) await feedReplay(false);
+      row.motion_video_mean = U.r2(U.mean(DL.motionLog || []));
+      Object.assign(row, mouthFields(S, DL.mouthLog));
+      DL.motionLog = null; DL.mouthLog = null;
+      Object.assign(row, recFields(rec));
+      Object.assign(row, await ZL.ask.statements(cfg.statements.mirror,
+        { rnd: rnd, limitMs: cfg.answer.limitMs, gapMs: cfg.answer.gapMs, label: progLabel(prog) }));
+      ST.text('休みます', '顔を うごかさずに、そのまま まってください。', progLabel(prog));
+      ST.status(progAfter(prog), 'count');
+      DL.motionLog = []; DL.mouthLog = [];
+      await R.wait(t.restMs);
+      row.motion_rest_mean = U.r2(U.mean(DL.motionLog || []));
+      row.mouth_motion_rest = U.r2(U.mean((DL.mouthLog || []).map(function (x) { return x.m; })));
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      throw e;
+    } finally {
+      AU.stop(); DL.mode = 'black'; if (DL.rec) DL.stopRecording(); DL.motionLog = null; DL.mouthLog = null;
+      if (replay && DL.feed === 'replay') { ZL.replay.pause(); DL.useFeed('camera'); }
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  // P：打ち切りプローブ（仮P1）。黒＋音 → 映像（付加 D）を t ms で止める → 文を 1 つ → 短い休み
+  async function trialP(S, label, p, prog, rnd) {
+    var ST = ZL.stage, DL = ZL.delay, AU = ZL.audio, t = T(S), cfg = ZL.CONFIG, D = cfg.mirror.probe.addedMs;
+    var row = baseRow(S, label, false, 'P');
+    row.added_set_ms = D; row.probe_t_ms = p.t; row.probe_key = p.key;
+    var item = cfg.statements.mirror.filter(function (s) { return s.key === p.key; })[0];
+    try {
+      ST.over(false); DL.mode = 'black';
+      ST.status(progLeft(prog), 'count');
+      await ST.next('じゅんびが できたら はじめます', '', progLabel(prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      DL.setAdded(D);
+      AU.start(bpmOf(S));
+      await R.frames(t.blackMs);
+      DL.motionLog = []; DL.mouthLog = [];
+      DL.startRecording(D);
+      DL.mode = 'video';
+      await R.frames(p.t);
+      DL.mode = 'black';
+      var rec = DL.stopRecording();
+      AU.stop();
+      row.motion_video_mean = U.r2(U.mean(DL.motionLog || []));
+      Object.assign(row, mouthFields(S, DL.mouthLog));
+      DL.motionLog = null; DL.mouthLog = null;
+      Object.assign(row, recFields(rec));
+      var a = await ZL.ask.one(item, { limitMs: cfg.answer.limitMs, label: progLabel(prog) });
+      row.probe_resp = a.resp; row.probe_rt = a.rt;
+      ST.text('', '', progLabel(prog));
+      ST.status(progAfter(prog), 'count');
+      await R.wait(t.probeRestMs);
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      throw e;
+    } finally {
+      AU.stop(); DL.mode = 'black'; if (DL.rec) DL.stopRecording(); DL.motionLog = null; DL.mouthLog = null;
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  // R：付加遅延をゆっくり上げる／下げる。「かわった」を押した時点の遅延を記録（v3 ブロック R の考え方）
+  async function trialR(S, label, plan, rnd, prog) {
+    var ST = ZL.stage, DL = ZL.delay, AU = ZL.audio, t = T(S), cfg = ZL.CONFIG, rc = cfg.mirror.ramp;
+    var speed = rc.speedMsPerS[modeKey(S)];
+    var jitter = rnd() * rc.startJitterMs;
+    var start = plan.dir === 'up' ? rc.lowMs + jitter : rc.highMs - jitter;
+    var end = plan.dir === 'up' ? rc.highMs : rc.lowMs;
+    var durMs = Math.abs(end - start) / speed * 1000;
+    var row = baseRow(S, label, false, 'R');
+    Object.assign(row, { ramp_dir: plan.dir, ramp_speed_ms_s: speed, ramp_start_ms: U.r1(start), ramp_end_ms: end, judgement: plan.judgement });
+    var stmt = cfg.statements.mirror.filter(function (s) { return s.key === plan.judgement; })[0].text;
+    var presses = [], removeBtn = null, tv = null;
+    try {
+      ST.over(false); DL.mode = 'black';
+      ST.status(progLeft(prog), 'count');
+      await ST.next('この回は、この感じが 変わったら「かわった」', '「' + stmt + '」\n（画面の 丸い ボタン' + (ZL.stage.touch ? '' : '、または スペース か Enter') + '）', progLabel(prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      DL.setAdded(start);
+      AU.start(bpmOf(S));
+      await R.frames(t.rampBlackMs);
+      DL.startRecording(start);
+      DL.mouthLog = [];
+      removeBtn = ST.floatButton('かわった', ['Enter', 'NumpadEnter', 'Space'], function (tp) {
+        if (tv == null) return;
+        presses.push({ t_ms: U.r1(tp - tv), added_ms: U.r1(DL.addedMs), added_real_ms: U.r1(DL.lastAddedReal) });
+      });
+      DL.mode = 'video';
+      await R.frames(durMs, function (tt, el) {
+        if (tv == null) tv = tt;
+        DL.setAdded(U.lerp(start, end, U.clamp(el / durMs, 0, 1)));
+        if (ZL.dev.auto && !presses.length && el > durMs * 0.5) presses.push({ t_ms: U.r1(el), added_ms: U.r1(DL.addedMs), auto: true });
+      });
+      DL.mode = 'black';
+      removeBtn(); removeBtn = null;
+      var rec = DL.stopRecording();
+      AU.stop();
+      row.end_reason = 'end_of_ramp';
+      Object.assign(row, mouthFields(S, DL.mouthLog)); DL.mouthLog = null;
+      if (rec) { row.cam_fps = U.r1(rec.cam_fps); row.late_frames = rec.late_frames; row.frame_faults = rec.frame_faults; row.ts_kind = rec.ts_kind; row.underruns = rec.underruns; }
+      ST.text('休みます', '顔を うごかさずに、そのまま まってください。', progLabel(prog));
+      ST.status(progAfter(prog), 'count');
+      await R.wait(t.restMs);
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      row.end_reason = 'aborted';
+      throw e;
+    } finally {
+      if (removeBtn) removeBtn();
+      AU.stop(); DL.mode = 'black'; if (DL.rec) DL.stopRecording(); DL.mouthLog = null;
+      row.press_count = presses.length;
+      if (presses.length) { row.press1_t_ms = presses[0].t_ms; row.press1_added_ms = presses[0].added_ms; }
+      row.presses = JSON.stringify(presses);
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  // ---------- 全体 ----------
+  M.run = async function (S) {
+    var ST = ZL.stage, DL = ZL.delay, AU = ZL.audio, CAM = ZL.camera, cfg = ZL.CONFIG.mirror, k = modeKey(S);
+    var rnd = U.rng(S.seed), rndP = U.rng((S.seed ^ 0x9e3779b9) >>> 0);
+    R.reset();
+    ST.show({ banner: S.run_mode === 'check' ? '動作確認（短縮）' : '' });
+    DL.setSpan(Math.max(Math.max.apply(null, cfg.levelsAddedMs), cfg.ramp.highMs + cfg.ramp.startJitterMs, cfg.probe.addedMs, cfg.replay.addedMs));
+    CAM.onTrouble = function (why) { S.events.push({ t: U.r1(U.now()), type: why }); };
+    try {
+      await ST.next('かがみ', 'カメラで 顔を うつし、音に あわせて 口を うごかします。\nそのあと、画面の 顔について 文に こたえます。', '', 'はじめる');
+      await soundCheck(S);
+      await startCamera(S);
+      await framing(S);
+      await mouthCheck(S);
+      if (S.opts.calibrate && S.source === 'camera') await ZL.latency.calibrate(S);
+      await rhythm(S);
+      await recordForReplay(S);
+      var bpm = bpmOf(S);
+      await ST.next('これから 練習です',
+        '画面が 黒くなり、そのあと 顔が うつります。うつっている あいだは、' + (bpm ? '音に あわせて' : '自分の ペースで') + ' 口を うごかします。\n' +
+        'そのあと 文が 1つずつ 出ます。そう感じたら「はい」、ちがえば「いいえ」。5秒で 次の文に すすみます。', '', 'わかった');
+
+      // 本番の計画を先に決める（全回数を「あと何回」に使うため）
+      var planC = [];
+      cfg.levelsAddedMs.forEach(function (D) { for (var q = 0; q < cfg.repsPerLevel; q++) planC.push({ kind: 'live', D: D }); });
+      if (S.replay && S.replay.ok) for (var w = 0; w < cfg.replay.trials; w++) planC.push({ kind: 'replay', D: cfg.replay.addedMs });
+      U.shuffle(planC, rnd);
+      var planP = [], pc = cfg.probe[k];
+      if (S.opts.probe) {
+        pc.tSec.forEach(function (sec) { pc.statements.forEach(function (key) { for (var q = 0; q < pc.reps; q++) planP.push({ t: Math.round(sec * 1000), key: key }); }); });
+        U.shuffle(planP, rnd);
+      }
+      var plansR = [];
+      if (S.opts.ramp && cfg.ramp.trials > 0) {
+        var dirs = [];
+        for (var j = 0; j < cfg.ramp.trials; j++) dirs.push(j % 2 === 0 ? 'up' : 'down');
+        U.shuffle(dirs, rnd);
+        plansR = dirs.map(function (d) { return { dir: d, judgement: rnd() < 0.5 ? 'own' : 'sync' }; });
+      }
+      S.plan = { C: planC.slice(), P: planP.slice(), R: plansR };
+      var total = planC.length + planP.length + plansR.length, idx = 0;
+
+      for (var p = 0; p < cfg.practiceTrials; p++) {
+        await trialC(S, 'P' + (p + 1), cfg.levelsAddedMs[Math.floor(rndP() * cfg.levelsAddedMs.length)], null, rnd);
+      }
+      await ST.next('ここから 本番です', '全部で ' + total + ' 回です（約 ' + mainMinutes(S, planC.length, planP, plansR.length) + ' 分）。\n練習と 同じように すすみます。', '', 'はじめる');
+      for (var i = 0; i < planC.length; i++) {
+        idx++;
+        await trialC(S, i + 1, planC[i].D, { i: idx, n: total }, rnd, { replay: planC[i].kind === 'replay' });
+      }
+      if (planP.length) {
+        await ST.next('のこり ' + (total - idx) + ' 回の うち ' + planP.length + ' 回は、短い回です',
+          '顔が うつる 時間が 短く、すぐに 文が 1つだけ 出ます。\nうつっている あいだは、これまでと 同じように ' + (bpm ? '音に あわせて' : '自分の ペースで') + ' 口を うごかします。', '', 'わかった');
+        for (var q = 0; q < planP.length; q++) { idx++; await trialP(S, 'Q' + (q + 1), planP[q], { i: idx, n: total }, rnd); }
+      }
+      if (plansR.length) {
+        await ST.next('のこり ' + plansR.length + ' 回は 少し ちがう やり方です',
+          '顔が うつっている あいだに、感じが 変わったと 思ったら「かわった」を 押します（パソコンは スペース か Enter）。\n変わらなければ 押さなくて かまいません。', '', 'わかった');
+        for (var r = 0; r < plansR.length; r++) { idx++; await trialR(S, 'R' + (r + 1), plansR[r], rnd, { i: idx, n: total }); }
+      }
+      DL.mode = 'black';
+      S.free_text = await ST.freeText('気づいたことが あれば 書いてください', 'なくても かまいません。');
+      S.completed = true;
+    } catch (e) {
+      if (e && e.isAbort) S.aborted = R.reason || 'abort';
+      else { S.aborted = 'error'; S.events.push({ t: U.r1(U.now()), type: 'error', message: String((e && e.message) || e) }); if (window.console) console.error(e); }
+    } finally {
+      AU.stop(); DL.stop(); CAM.stop(); CAM.onTrouble = null; ST.hide();
+      ZL.replay.dispose();                 // 録画は課題が終わると消す（仮M10）
+      S.ended_iso = new Date().toISOString();
+      S.audio = AU.info();
+      await ZL.store.put(S);
+    }
+    return S;
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* =====================================================================
+   ほしあつめ：指（マウス）で画面の手を動かし、落ちてくるほしを集める
+   ---------------------------------------------------------------------
+   ・難しさ 3 条件：ゆっくり（easy・退屈側）／ちょうど（fit・自動調整）／きつい（hard・過負荷側）
+   ・操作の遅延：入力の軌跡を溜め、付加遅延ぶん前の位置に手を描く（一定／上げ下げ）
+   ・ラウンドのあと：v3 と同じ形の 3 文（はい／いいえ・5 秒）＋ラウンド後の項目（仮F3・7 件法）
+   ・0.2.0：ラウンドを長く少なく（2 分 × 3 難しさ × 2 遅延。仮G3・仮G1）、打ち切りプローブ（t 秒で止めて 1 文。仮P3）
+   本番中は条件（難しさ・遅延）を画面に出さない。点数（集めたほしの数）は遊びの一部として出す。
+   ===================================================================== */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U, R = ZL.run;
+  var G = ZL.game = {};
+
+  function TT(S) { return ZL.CONFIG.game.timing[S.run_mode === 'check' ? 'check' : 'normal']; }
+  function dots(n, total) { var s = []; for (var i = 0; i < total; i++) s.push(i < n ? '●' : '○'); return s.join(' '); }
+  function safeTop() {
+    try { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0; } catch (e) { return 0; }
+  }
+
+  G.minutes = function (mode) {
+    var c = ZL.CONFIG.game, k = mode === 'check' ? 'check' : 'normal', t = c.timing[k];
+    var n = mode === 'check' ? c.checkRounds : c.modes.length * c.lagLevelsMs.length * c.reps;
+    var nItems = ZL.CONFIG.flowItems.length;
+    var perRound = 2500 + t.roundMs + 3 * 2500 + nItems * 3000 + t.restMs;
+    var pc = c.probe[k], nP = pc.tSec.length * pc.statements.length * pc.reps, sumT = 0;
+    pc.tSec.forEach(function (s) { sumT += s * 1000; });
+    var perP = 2500 + 2800 + t.probeRestMs;
+    var sp = c.ramp.speedMsPerS[k];
+    var perR = 5000 + (c.ramp.highMs - c.ramp.lowMs) / sp * 1000 + t.restMs;
+    var total = 40000 + t.practiceMs + 10000 + n * perRound + nP * perP + sumT * pc.statements.length * pc.reps + c.ramp.trials * perR + 30000;
+    return Math.max(1, Math.round(total / 60000));
+  };
+
+  // ---------- 描画の部品 ----------
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+  }
+  function capsule(ctx, x, y, w, h) {
+    var r = w / 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y + r);
+    ctx.arc(x + r, y + r, r, Math.PI, 0);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arc(x + r, y + h - r, r, 0, Math.PI);
+    ctx.closePath();
+  }
+  function starPath(ctx, x, y, r, rot) {
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var a = rot + i * Math.PI / 5 - Math.PI / 2, rr = i % 2 === 0 ? r : r * 0.45;
+      var px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+  // 右手を甲側から見た形（親指が左）。白い手袋のような色（v3 の白手袋に合わせた。仮G4）
+  function drawHand(ctx, x, y, m) {
+    var pw = m * 0.12, ph = m * 0.11;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#f1f0eb';
+    ctx.strokeStyle = '#b5bab3';
+    ctx.lineWidth = Math.max(1, m * 0.004);
+    var fw = pw * 0.215, gap = (pw - 4 * fw) / 3, lens = [0.95, 1.08, 1.02, 0.82];
+    for (var i = 0; i < 4; i++) {
+      var fx = -pw / 2 + i * (fw + gap), fl = ph * lens[i];
+      capsule(ctx, fx, -ph / 2 - fl + fw * 0.6, fw, fl);
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(-pw / 2 + fw * 0.2, ph * 0.12);
+    ctx.rotate(-0.75);
+    capsule(ctx, -fw * 0.55, -ph * 0.8, fw * 1.1, ph * 0.82);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    roundRect(ctx, -pw / 2, -ph / 2, pw, ph * 1.05, pw * 0.3);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 難しさ 0〜1 → 落ちる速さ・出る間隔・大きさ・横ゆれ（仮G2）
+  function params(level, W, H, m) {
+    return {
+      speed: U.lerp(0.20, 0.70, level) * H,
+      spawnEvery: U.lerp(1.25, 0.38, level),
+      r: U.lerp(0.050, 0.028, level) * m,
+      drift: U.lerp(0.0, 0.08, level) * W
+    };
+  }
+
+  // =====================================================================
+  // ゲームの本体
+  // =====================================================================
+  function Engine(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d', { alpha: false });
+    this.samples = []; this.stars = []; this.parts = []; this.bg = [];
+    this.ptype = ''; this.stat = null; this.capturing = false; this.curLag = 0;
+    var self = this;
+    this.onPointer = function (e) {
+      if (!self.capturing) return;
+      if (e.pointerType === 'touch' && e.isPrimary === false) return;
+      var list = null;
+      try { list = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null; } catch (err) { list = null; }
+      if (!list || !list.length) list = [e];
+      for (var i = 0; i < list.length; i++) self.addSample(list[i].timeStamp, list[i].clientX, list[i].clientY);
+      self.ptype = e.pointerType || '';
+      if (e.cancelable) e.preventDefault();
+    };
+  }
+  Engine.prototype.attach = function () {
+    this.canvas.addEventListener('pointermove', this.onPointer, { passive: false });
+    this.canvas.addEventListener('pointerdown', this.onPointer, { passive: false });
+    this.capturing = true;
+  };
+  Engine.prototype.detach = function () {
+    this.canvas.removeEventListener('pointermove', this.onPointer);
+    this.canvas.removeEventListener('pointerdown', this.onPointer);
+    this.capturing = false;
+  };
+  Engine.prototype.size = function () {
+    this.dpr = window.devicePixelRatio || 1;
+    this.W = this.canvas.width / this.dpr; this.H = this.canvas.height / this.dpr;
+    this.m = Math.min(this.W, this.H);
+  };
+  Engine.prototype.makeBg = function () {
+    this.bg = [];
+    for (var i = 0; i < 70; i++) this.bg.push({ x: Math.random(), y: Math.random(), s: Math.random() < 0.8 ? 1 : 2 });
+  };
+
+  // 入力の軌跡を溜める。止まっていたあとの最初の点の手前に「止まっていた位置」を置き、
+  // 遅延のあいだに手が先回りして動かないようにする
+  Engine.prototype.addSample = function (t, x, y) {
+    var s = this.samples;
+    if (s.length) {
+      var last = s[s.length - 1];
+      if (t < last.t) t = last.t;
+      if (t - last.t > 30) s.push({ t: t - 0.5, x: last.x, y: last.y });
+    }
+    s.push({ t: t, x: x, y: y });
+    if (this.stat) {
+      this.stat.n++;
+      if (this.stat.last != null && t - this.stat.last > 0) this.stat.iv.push(t - this.stat.last);
+      this.stat.last = t;
+    }
+    var cut = t - 3000, k = 0;
+    while (k < s.length - 2 && s[k + 1].t < cut) k++;
+    if (k > 0) s.splice(0, k);
+  };
+  Engine.prototype.posAt = function (tau) {
+    var s = this.samples, n = s.length;
+    if (!n) return null;
+    if (tau <= s[0].t) return s[0];
+    if (tau >= s[n - 1].t) return s[n - 1];
+    var lo = 0, hi = n - 1;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (s[mid].t <= tau) lo = mid; else hi = mid; }
+    var a = s[lo], b = s[hi], f = (b.t === a.t) ? 1 : (tau - a.t) / (b.t - a.t);
+    return { t: tau, x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  };
+  Engine.prototype.offset = function () {
+    return (this.ptype === 'touch' || this.ptype === 'pen') ? ZL.CONFIG.game.touchOffsetPx : 0;
+  };
+  // 時刻 t に描く手の位置（付加遅延 lag ぶん前の入力）
+  Engine.prototype.hand = function (t, lag) {
+    var p = this.posAt(t - lag), W = this.W, H = this.H, m = this.m;
+    var x = p ? p.x : W / 2, y = p ? p.y - this.offset() : H * 0.74;
+    return { x: U.clamp(x, m * 0.09, W - m * 0.09), y: U.clamp(y, H * 0.5, H * 0.9) };
+  };
+  // つかむ場所（手のひらの少し上）
+  Engine.prototype.grip = function (h) { return { x: h.x, y: h.y - this.m * 0.07, r: this.m * 0.09 }; };
+
+  Engine.prototype.spawn = function (P, t) {
+    var r = P.r, x0 = r + Math.random() * (this.W - 2 * r);
+    this.stars.push({ x0: x0, x: x0, y: -r, r: r, vy: P.speed * (0.85 + Math.random() * 0.3),
+      amp: P.drift * Math.random(), w: 1.5 + Math.random() * 2, ph: Math.random() * 6.283, born: t,
+      rot: Math.random() * 6.283, spin: (Math.random() - 0.5) * 2 });
+  };
+  Engine.prototype.burst = function (x, y, t) {
+    for (var i = 0; i < 7; i++) {
+      var a = i / 7 * 6.283;
+      this.parts.push({ x: x, y: y, vx: Math.cos(a), vy: Math.sin(a), t0: t });
+    }
+  };
+  Engine.prototype.background = function () {
+    var ctx = this.ctx, d = this.dpr, W = this.W, H = this.H;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.fillStyle = '#040d17';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(200,220,255,0.22)';
+    for (var i = 0; i < this.bg.length; i++) { var b = this.bg[i]; ctx.fillRect(b.x * W, b.y * H, b.s, b.s); }
+  };
+  Engine.prototype.drawIdle = function () {
+    this.size();
+    if (!this.bg.length) this.makeBg();
+    this.background();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  Engine.prototype.draw = function (t, h, prog, score) {
+    var ctx = this.ctx, W = this.W, m = this.m;
+    this.background();
+    ctx.fillStyle = '#16686e';
+    ctx.fillRect(0, 0, W * (1 - U.clamp(prog, 0, 1)), Math.max(3, m * 0.008));
+    for (var k = 0; k < this.stars.length; k++) {
+      var s = this.stars[k];
+      ctx.fillStyle = 'rgba(243,201,105,0.16)';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 1.7, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#f3c969';
+      starPath(ctx, s.x, s.y, s.r, s.rot); ctx.fill();
+    }
+    for (var i = this.parts.length - 1; i >= 0; i--) {
+      var p = this.parts[i], age = (t - p.t0) / 320;
+      if (age >= 1) { this.parts.splice(i, 1); continue; }
+      ctx.fillStyle = 'rgba(243,201,105,' + (1 - age).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(p.x + p.vx * m * 0.08 * age, p.y + p.vy * m * 0.08 * age, m * 0.008, 0, 6.283); ctx.fill();
+    }
+    drawHand(ctx, h.x, h.y, m);
+    ctx.fillStyle = '#f3c969';
+    ctx.font = '700 ' + Math.round(Math.max(18, m * 0.05)) + 'px "Zen Maru Gothic", "BIZ UDPGothic", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('★ ' + score, W / 2, safeTop() + 54);   // 上の帯（やめる・表示・チェック）の下
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+
+  // 自動テスト用（#autotest のときだけ）：いちばん下のほしへ手を寄せる
+  Engine.prototype.autoPilot = function (t, tx, ty) {
+    var last = this.samples[this.samples.length - 1];
+    if (!this.ptype) this.ptype = 'auto';
+    var x = last ? last.x : this.W / 2, y = last ? last.y : this.H * 0.8;
+    if (tx == null) {
+      var target = null, best = -Infinity;
+      for (var i = 0; i < this.stars.length; i++) if (this.stars[i].y > best) { best = this.stars[i].y; target = this.stars[i]; }
+      tx = target ? target.x : this.W / 2; ty = this.H * 0.82;
+    }
+    this.addSample(t, x + (tx - x) * 0.2, y + (ty - y) * 0.2);
+  };
+
+  // 円に手を重ねる練習（遅延なし）
+  Engine.prototype.target = function (tx, ty, r) {
+    var self = this;
+    self.size();
+    if (!self.bg.length) self.makeBg();
+    return new Promise(function (resolve, reject) {
+      var inside = null, id = 0, off = function () {};
+      function frame(t) {
+        if (R.aborted) return;
+        if (ZL.dev.auto) self.autoPilot(t, tx, ty + self.m * 0.07 + self.offset());
+        var h = self.hand(t, 0), g = self.grip(h);
+        var isIn = (g.x - tx) * (g.x - tx) + (g.y - ty) * (g.y - ty) < r * r;
+        if (isIn) { if (inside === null) inside = t; } else inside = null;
+        var fill = inside === null ? 0 : U.clamp((t - inside) / 350, 0, 1);
+        var ctx = self.ctx;
+        self.background();
+        ctx.lineWidth = Math.max(3, self.m * 0.008);
+        ctx.strokeStyle = isIn ? '#7bd8a5' : '#2e9c8a';
+        ctx.beginPath(); ctx.arc(tx, ty, r, 0, 6.283); ctx.stroke();
+        if (fill > 0) {
+          ctx.fillStyle = 'rgba(123,216,165,0.35)';
+          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.arc(tx, ty, r, -Math.PI / 2, -Math.PI / 2 + fill * 6.283); ctx.closePath(); ctx.fill();
+        }
+        drawHand(ctx, h.x, h.y, self.m);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (fill >= 1) { off(); resolve(); return; }
+        id = requestAnimationFrame(frame);
+      }
+      id = requestAnimationFrame(frame);
+      off = R.onAbort(function () { cancelAnimationFrame(id); reject(R.error()); });
+    });
+  };
+
+  // 1 ラウンド。o: { mode, lagMs | ramp:{start,end}, durMs, onFrame }
+  Engine.prototype.round = function (o) {
+    var self = this, gc = ZL.CONFIG.game;
+    self.size();
+    if (!self.bg.length) self.makeBg();
+    self.stars = []; self.parts = [];
+    self.stat = { n: 0, last: null, iv: [] };
+    var level = o.mode === 'fit' ? gc.fit.start : gc.levelFixed[o.mode];
+    var levelStart = level, lvl = new U.Stat(), catches = 0, misses = 0, rafGaps = 0, frames = 0;
+    var refresh = (ZL.env && ZL.env.refresh_ms) || 16.7;
+    return new Promise(function (resolve, reject) {
+      var t0 = null, last = null, spawnAcc = 0, id = 0, off = function () {};
+      function frame(t) {
+        if (R.aborted) return;
+        if (t0 === null) { t0 = t; last = t; spawnAcc = 0.6; }
+        var el = t - t0, dt = Math.min(0.05, Math.max(0, (t - last) / 1000));
+        if (t - last > 2.5 * refresh) rafGaps++;
+        last = t; frames++;
+        var lag = o.ramp ? U.lerp(o.ramp.start, o.ramp.end, U.clamp(el / o.durMs, 0, 1)) : (o.lagMs || 0);
+        self.curLag = lag;
+        if (ZL.dev.auto) self.autoPilot(t);
+        var P = params(level, self.W, self.H, self.m);
+        spawnAcc += dt;
+        if (spawnAcc >= P.spawnEvery) { spawnAcc -= P.spawnEvery; self.spawn(P, t); }
+        var h = self.hand(t, lag), g = self.grip(h);
+        for (var i = self.stars.length - 1; i >= 0; i--) {
+          var s = self.stars[i];
+          s.y += s.vy * dt;
+          s.x = U.clamp(s.x0 + s.amp * Math.sin(s.w * (t - s.born) / 1000 + s.ph), s.r, self.W - s.r);
+          s.rot += s.spin * dt;
+          var dx = s.x - g.x, dy = s.y - g.y, rr = g.r + s.r * 0.6;
+          if (dx * dx + dy * dy < rr * rr) {
+            catches++; self.burst(s.x, s.y, t); self.stars.splice(i, 1);
+            if (o.mode === 'fit') level = U.clamp(level + gc.fit.up, 0, 1);
+          } else if (s.y - s.r > self.H) {
+            misses++; self.stars.splice(i, 1);
+            if (o.mode === 'fit') level = U.clamp(level - gc.fit.down, 0, 1);
+          }
+        }
+        lvl.add(level);
+        self.draw(t, h, el / o.durMs, catches);
+        if (o.onFrame) o.onFrame(t, el, lag);
+        if (el >= o.durMs) {
+          off();
+          var med = U.median(self.stat.iv);
+          resolve({
+            duration_ms: Math.round(el), catches: catches, misses: misses,
+            catch_rate: (catches + misses) ? U.r3(catches / (catches + misses)) : '',
+            level_start: U.r3(levelStart), level_end: U.r3(level), level_mean: U.r3(lvl.summary().mean),
+            pointer_hz: (isFinite(med) && med > 0) ? U.r1(1000 / med) : '', pointer_type: self.ptype,
+            raf_gaps: rafGaps, frames: frames
+          });
+          return;
+        }
+        id = requestAnimationFrame(frame);
+      }
+      id = requestAnimationFrame(frame);
+      off = R.onAbort(function () { cancelAnimationFrame(id); reject(R.error()); });
+    });
+  };
+
+  // =====================================================================
+  // 進行
+  // =====================================================================
+  function baseRow(S, trial, practice, block) {
+    return {
+      app_version: ZL.VERSION.app, session_id: S.id, participant_id: S.participant_id, session_no: S.session_no,
+      module: 'game', run_mode: S.run_mode, source: S.source, trial: trial, practice: practice ? 1 : 0, block: block,
+      seed: S.seed, aborted: 0, abort_reason: ''
+    };
+  }
+
+  // 「あと何回」（仮S3）。prog = { i: 本番の何回目（1 から）, n: 本番の全回数 }。練習は null
+  function progLabel(prog) { return prog ? prog.i + ' / ' + prog.n : '練習'; }
+  function progLeft(prog) { return prog ? 'あと ' + (prog.n - prog.i + 1) + ' 回' : ''; }
+  function progAfter(prog) {
+    if (!prog) return '';
+    var k = prog.n - prog.i;
+    return k > 0 ? 'のこり ' + k + ' 回' : 'これで さいごでした';
+  }
+  function mainMinutes(S, nRounds, planP, nRamps) {
+    var gc = ZL.CONFIG.game, t = TT(S), sp = gc.ramp.speedMsPerS[S.run_mode === 'check' ? 'check' : 'normal'];
+    var perRound = 2000 + t.roundMs + 3 * 2200 + ZL.CONFIG.flowItems.length * 2500 + t.restMs;
+    var sumP = 0; planP.forEach(function (p) { sumP += 2000 + p.t + 2500 + t.probeRestMs; });
+    var perRamp = 3000 + (gc.ramp.highMs - gc.ramp.lowMs) / sp * 1000 + t.restMs;
+    return Math.max(1, Math.round((nRounds * perRound + sumP + nRamps * perRamp) / 60000));
+  }
+
+  // 打ち切りプローブ（仮P3）：t ms だけあそんで止め、文を 1 つだけ聞く
+  async function probeRound(S, eng, o) {
+    var ST = ZL.stage, cfg = ZL.CONFIG, gc = cfg.game, t = TT(S);
+    var row = baseRow(S, o.label, false, 'P');
+    row.mode = gc.probe.mode; row.lag_set_ms = gc.probe.lagMs; row.probe_t_ms = o.p.t; row.probe_key = o.p.key;
+    var item = cfg.statements.game.filter(function (s) { return s.key === o.p.key; })[0];
+    try {
+      ST.cursor(true);
+      eng.drawIdle();
+      ST.status(progLeft(o.prog), 'count');
+      await ST.next('じゅんびが できたら はじめます', '', progLabel(o.prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      Object.assign(row, await eng.round({ mode: gc.probe.mode, lagMs: gc.probe.lagMs, durMs: o.p.t }));
+      eng.drawIdle();
+      var a = await ZL.ask.one(item, { limitMs: cfg.answer.limitMs, label: progLabel(o.prog) });
+      row.probe_resp = a.resp; row.probe_rt = a.rt;
+      ST.text('', '', progLabel(o.prog));
+      ST.status(progAfter(o.prog), 'count');
+      await R.wait(t.probeRestMs);
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      throw e;
+    } finally {
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  async function round(S, eng, o, rnd) {
+    var ST = ZL.stage, cfg = ZL.CONFIG, t = TT(S);
+    var row = baseRow(S, o.label, o.practice, 'C');
+    row.mode = o.mode; row.lag_set_ms = o.lagMs;
+    try {
+      ST.cursor(true);
+      eng.drawIdle();
+      ST.status(progLeft(o.prog), 'count');
+      await ST.next(o.practice ? '練習ラウンド' : 'じゅんびが できたら はじめます', '', progLabel(o.prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      Object.assign(row, await eng.round({ mode: o.mode, lagMs: o.lagMs, durMs: o.durMs }));
+      eng.drawIdle();
+      Object.assign(row, await ZL.ask.statements(cfg.statements.game,
+        { rnd: rnd, limitMs: cfg.answer.limitMs, gapMs: cfg.answer.gapMs, label: progLabel(o.prog) }));
+      if (!o.practice) Object.assign(row, await ZL.ask.scale(cfg.flowItems, { left: cfg.scale7.left, right: cfg.scale7.right, label: progLabel(o.prog) }));
+      ST.text('少し 休みます', '', progLabel(o.prog));
+      ST.status(progAfter(o.prog), 'count');
+      await R.wait(t.restMs);
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      throw e;
+    } finally {
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  async function rampRound(S, eng, label, plan, prog) {
+    var ST = ZL.stage, cfg = ZL.CONFIG, rc = cfg.game.ramp, t = TT(S);
+    var speed = rc.speedMsPerS[S.run_mode === 'check' ? 'check' : 'normal'];
+    var start = plan.dir === 'up' ? rc.lowMs : rc.highMs, end = plan.dir === 'up' ? rc.highMs : rc.lowMs;
+    var durMs = Math.abs(end - start) / speed * 1000;
+    var row = baseRow(S, label, false, 'R');
+    Object.assign(row, { mode: 'fit', ramp_dir: plan.dir, ramp_speed_ms_s: speed, ramp_start_ms: start, ramp_end_ms: end, judgement: plan.judgement });
+    var stmt = cfg.statements.game.filter(function (s) { return s.key === plan.judgement; })[0].text;
+    var presses = [], remove = null, t0 = null;
+    try {
+      ST.cursor(true);
+      eng.drawIdle();
+      ST.status(progLeft(prog), 'count');
+      await ST.next('この回は、この感じが 変わったら「かわった」', '「' + stmt + '」\n（画面の 丸い ボタン' + (ZL.stage.touch ? '' : '、または スペース か Enter') + '）', progLabel(prog), 'はじめる');
+      ST.clear(); ST.cursor(false);
+      row.t_start_iso = new Date().toISOString();
+      remove = ST.floatButton('かわった', ['Enter', 'NumpadEnter', 'Space'], function (tp) {
+        if (t0 == null) return;
+        presses.push({ t_ms: U.r1(tp - t0), lag_ms: U.r1(eng.curLag) });
+      });
+      Object.assign(row, await eng.round({ mode: 'fit', ramp: { start: start, end: end }, durMs: durMs,
+        onFrame: function (tt, el) {
+          if (t0 == null) t0 = tt - el;
+          if (ZL.dev.auto && !presses.length && el > durMs * 0.5) presses.push({ t_ms: U.r1(el), lag_ms: U.r1(eng.curLag), auto: true });
+        } }));
+      remove(); remove = null;
+      row.end_reason = 'end_of_ramp';
+      eng.drawIdle();
+      ST.text('少し 休みます', '', progLabel(prog));
+      ST.status(progAfter(prog), 'count');
+      await R.wait(t.restMs);
+      ST.clear();
+    } catch (e) {
+      row.aborted = 1; row.abort_reason = (e && e.isAbort) ? (R.reason || 'abort') : 'error';
+      row.end_reason = 'aborted';
+      throw e;
+    } finally {
+      if (remove) remove();
+      row.press_count = presses.length;
+      if (presses.length) { row.press1_t_ms = presses[0].t_ms; row.press1_lag_ms = presses[0].lag_ms; }
+      row.presses = JSON.stringify(presses);
+      S.trials.push(row); ZL.store.put(S);
+    }
+  }
+
+  G.run = async function (S) {
+    var ST = ZL.stage, gc = ZL.CONFIG.game, t = TT(S);
+    var rnd = U.rng(S.seed);
+    R.reset();
+    ST.show({ banner: S.run_mode === 'check' ? '動作確認（短縮）' : '' });
+    S.source = 'pointer';
+    var eng = new Engine(ST.canvas);
+    ST.onResize = function () { eng.size(); };
+    try {
+      eng.attach();
+      eng.drawIdle();
+      await ST.next('ほしあつめ', (ST.touch ? '指で' : 'マウスで') + ' 画面の 手を うごかして、おちてくる ほしを あつめます。', '', 'はじめる');
+
+      // 手を動かす練習：光る円に 3 回重ねる（できるまで進まない）
+      ST.over(true); ST.cursor(false);
+      ST.text('画面の 手を、光る 円に かさねます',
+        ST.touch ? '指を 画面に つけたまま うごかします。手は 指の 少し上に 出ます。' : 'マウスを うごかします。クリックは いりません。', '');
+      for (var k = 0; k < 3; k++) {
+        ST.status(dots(k, 3));
+        await eng.target(U.lerp(0.22, 0.78, rnd()) * eng.W, U.lerp(0.58, 0.72, rnd()) * eng.H, eng.m * 0.09);
+      }
+      ST.status(dots(3, 3), 'good');
+      ST.check();
+      S.setup.push({ step: 'input_targets', ok: true, pointer_type: eng.ptype, t: U.r1(U.now()) });
+      await R.wait(600);
+      ST.status(''); ST.over(false);
+
+      // 本番の計画を先に決める（全回数を「あと何回」に使うため）
+      var plan = [];
+      if (S.run_mode === 'check') {
+        // 動作確認では難しさ 3 条件を 1 回ずつ（遅延は乱数）
+        gc.modes.forEach(function (m) { plan.push({ mode: m, lagMs: gc.lagLevelsMs[Math.floor(rnd() * gc.lagLevelsMs.length)] }); });
+      } else {
+        gc.modes.forEach(function (m) { gc.lagLevelsMs.forEach(function (l) { for (var r = 0; r < gc.reps; r++) plan.push({ mode: m, lagMs: l }); }); });
+      }
+      U.shuffle(plan, rnd);
+      var pr = [];
+      if (S.opts.ramp && gc.ramp.trials > 0) {
+        var dirs = [];
+        for (var j = 0; j < gc.ramp.trials; j++) dirs.push(j % 2 === 0 ? 'up' : 'down');
+        U.shuffle(dirs, rnd);
+        pr = dirs.map(function (d) { return { dir: d, judgement: rnd() < 0.5 ? 'own' : 'sync' }; });
+      }
+      var planP = [], pc = gc.probe[S.run_mode === 'check' ? 'check' : 'normal'];
+      if (S.opts.probe) {
+        pc.tSec.forEach(function (sec) { pc.statements.forEach(function (key) { for (var w = 0; w < pc.reps; w++) planP.push({ t: Math.round(sec * 1000), key: key }); }); });
+        U.shuffle(planP, rnd);
+      }
+      S.plan = { rounds: plan.slice(), probes: planP.slice(), ramps: pr };
+      var total = plan.length + planP.length + pr.length, idx = 0;
+
+      await ST.next('練習します', '手を ほしの 下へ もっていくと つかまえられます。\nおわったら、文に こたえます。', '練習', 'つぎへ');
+      await round(S, eng, { label: 'P1', practice: true, prog: null, mode: 'fit', lagMs: 0, durMs: t.practiceMs }, rnd);
+
+      await ST.next('ここから 本番です', '全部で ' + total + ' 回です（約 ' + mainMinutes(S, plan.length, planP, pr.length) + ' 分）。\nラウンドごとに、ほしの おちかたが かわります。', '', 'はじめる');
+      for (var i = 0; i < plan.length; i++) {
+        idx++;
+        await round(S, eng, { label: String(i + 1), practice: false, prog: { i: idx, n: total }, mode: plan[i].mode, lagMs: plan[i].lagMs, durMs: t.roundMs }, rnd);
+      }
+      if (planP.length) {
+        await ST.next('のこり ' + (total - idx) + ' 回の うち ' + planP.length + ' 回は、短い回です',
+          'あそぶ 時間が 短く、止まったら すぐに 文が 1つだけ 出ます。', '', 'わかった');
+        for (var v = 0; v < planP.length; v++) { idx++; await probeRound(S, eng, { label: 'Q' + (v + 1), p: planP[v], prog: { i: idx, n: total } }); }
+      }
+      if (pr.length) {
+        await ST.next('のこり ' + pr.length + ' 回は 少し ちがう やり方です',
+          'あそんでいる あいだに、感じが 変わったと 思ったら「かわった」を 押します（パソコンは スペース か Enter）。\n変わらなければ 押さなくて かまいません。', '', 'わかった');
+        for (var q = 0; q < pr.length; q++) { idx++; await rampRound(S, eng, 'R' + (q + 1), pr[q], { i: idx, n: total }); }
+      }
+      ST.cursor(true);
+      eng.drawIdle();
+      S.free_text = await ST.freeText('気づいたことが あれば 書いてください', 'なくても かまいません。');
+      S.completed = true;
+    } catch (e) {
+      if (e && e.isAbort) S.aborted = R.reason || 'abort';
+      else { S.aborted = 'error'; S.events.push({ t: U.r1(U.now()), type: 'error', message: String((e && e.message) || e) }); if (window.console) console.error(e); }
+    } finally {
+      eng.detach();
+      ST.cursor(true);
+      ST.hide();
+      S.ended_iso = new Date().toISOString();
+      await ZL.store.put(S);
+    }
+    return S;
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 外枠の画面：ホーム → 同意 → 課題（参加者画面）→ おわり。研究者メニュー（設定・記録の書き出し・端末・仮の仕様） */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U;
+  var UI = ZL.ui = { module: null, last: null };
+  var SCREENS = ['scr-home', 'scr-consent', 'scr-done', 'scr-research'];
+  var NAMES = { mirror: 'かがみ', game: 'ほしあつめ' };
+  var PROFILES = { pc: 'PC 用', sp: 'スマホ用' };   // 0.2.3：公開ページの置き場所の名前（ZL.BUILD.profile）
+
+  // 0.2.3：どのページで取った記録か。ローカルのファイルを直接開いたときは、フォルダの場所を記録に入れないよう 'file' とだけ書く
+  function pageId() {
+    try { return location.protocol === 'file:' ? 'file' : location.host + location.pathname; } catch (e) { return ''; }
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  UI.show = function (id) {
+    SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
+    try { window.scrollTo(0, 0); } catch (e) {}
+  };
+
+  // ---------- 研究者の設定（この端末に記憶） ----------
+  var DEFAULTS = { pid: '', sessionNo: 1, runMode: 'normal', mirrorRamp: true, mirrorCal: true, allowDemo: true, gameRamp: true,
+    mirrorReplay: true, mirrorProbe: true, selfPaced: false, gameProbe: true };   // 0.2.0：再生・プローブ・自分のペース
+  UI.settings = function () {
+    var s = U.lsGet('zonelab.settings', {}) || {};
+    var out = {};
+    Object.keys(DEFAULTS).forEach(function (k) { out[k] = s[k] == null ? DEFAULTS[k] : s[k]; });
+    if (ZL.hashCheck) out.runMode = 'check';
+    return out;
+  };
+  function saveSettings(st) { U.lsSet('zonelab.settings', st); }
+
+  function minutes(module, mode) { return module === 'mirror' ? ZL.mirror.minutes(mode) : ZL.game.minutes(mode); }
+
+  function renderHome() {
+    var st = UI.settings();
+    $('mirrorMins').textContent = '約' + minutes('mirror', st.runMode) + '分';
+    $('gameMins').textContent = '約' + minutes('game', st.runMode) + '分';
+    var badge = $('barMode');
+    badge.hidden = st.runMode !== 'check';
+    badge.textContent = '動作確認（短縮）';
+  }
+
+  // ---------- 同意 ----------
+  UI.openConsent = function (module) {
+    var st = UI.settings();
+    UI.module = module;
+    $('cAge').checked = false; $('cAgree').checked = false;
+    updateConsent();
+    $('consentName').textContent = '「' + NAMES[module] + '」';
+    $('consentMins').textContent = String(minutes(module, st.runMode));
+    $('consentCamera').hidden = module !== 'mirror';
+    UI.show('scr-consent');
+  };
+  function updateConsent() { $('consentGo').disabled = !($('cAge').checked && $('cAgree').checked); }
+
+  UI.newSession = function (module) {
+    var st = UI.settings();
+    var S = {
+      id: U.uid(), app_version: ZL.VERSION.app, app_date: ZL.VERSION.date, app_stage: ZL.VERSION.stage,
+      created_iso: new Date().toISOString(), participant_id: st.pid || 'anon', session_no: st.sessionNo,
+      module: module, run_mode: st.runMode, source: null, seed: U.newSeed(),
+      opts: { ramp: module === 'mirror' ? !!st.mirrorRamp : !!st.gameRamp, calibrate: !!st.mirrorCal, allowDemo: !!st.allowDemo,
+              replay: !!st.mirrorReplay, probe: module === 'mirror' ? !!st.mirrorProbe : !!st.gameProbe, selfPaced: !!st.selfPaced },
+      build: { profile: ZL.BUILD.profile, id: ZL.BUILD.id, built: ZL.BUILD.built, page: pageId() },   // 0.2.3
+      env: ZL.env, consent: { age18: true, agreed: true, at: new Date().toISOString(), text_version: 'prototype-0.2' },
+      config: ZL.CONFIG, setup: [], latency_calib: null, trials: [], events: [], free_text: '',
+      completed: false, aborted: null
+    };
+    st.sessionNo = (parseInt(st.sessionNo, 10) || 1) + 1;
+    saveSettings(st);
+    return S;
+  };
+
+  // 0.2.1：二重起動を防ぐ（ダブルクリックや、ボタンにフォーカスが残ったままのキー操作で 2 つのセッションが同時に走らないように）
+  UI.start = async function () {
+    if (UI.running) return;
+    UI.running = true;
+    var module = UI.module;
+    $('consentGo').disabled = true;
+    try {
+      ZL.stage.fullscreen();            // 利用者の操作の中で（できなければそのまま）
+      await ZL.audio.ensure();          // 音を鳴らせるようにする（同上）
+      var S = UI.newSession(module);
+      ZL.store.put(S);
+      var done = module === 'mirror' ? await ZL.mirror.run(S) : await ZL.game.run(S);
+      UI.last = done;
+      UI.showDone(done);
+    } finally {
+      UI.running = false;
+      updateConsent();
+    }
+  };
+
+  UI.showDone = function (S) {
+    var name = NAMES[S.module];
+    var why = { quit: '「やめる」で', esc: 'Esc キーで', hidden: '画面から はなれたため', camera: 'カメラが 使えなかったため', error: '問題が おきたため' };
+    if (S.completed) {
+      $('doneTitle').textContent = 'おつかれさまでした';
+      $('doneText').textContent = '「' + name + '」は これで おわりです。';
+    } else {
+      $('doneTitle').textContent = '途中で おわりました';
+      $('doneText').textContent = (why[S.aborted] || '') + '中止しました。ここまでの 記録は この端末に 保存されています。';
+    }
+    var nTrials = S.trials.filter(function (r) { return !r.practice; }).length;
+    $('doneFacts').textContent = '答えた回数：' + nTrials + '　／　手順のチェック：✔ ' + ZL.stage.checks;
+    $('doneOther').textContent = S.module === 'mirror' ? '「ほしあつめ」へ' : '「かがみ」へ';
+    UI.show('scr-done');
+  };
+
+  // ---------- 研究者メニュー ----------
+  UI.openResearch = function () {
+    var st = UI.settings();
+    $('rPid').value = st.pid; $('rSess').value = st.sessionNo; $('rMode').value = st.runMode;
+    $('rMirRamp').checked = !!st.mirrorRamp; $('rMirCal').checked = !!st.mirrorCal;
+    $('rDemo').checked = !!st.allowDemo; $('rGameRamp').checked = !!st.gameRamp;
+    $('rMirReplay').checked = !!st.mirrorReplay; $('rMirProbe').checked = !!st.mirrorProbe;
+    $('rSelfPaced').checked = !!st.selfPaced; $('rGameProbe').checked = !!st.gameProbe;
+    $('rModeNote').hidden = !ZL.hashCheck;
+    renderSaved(); renderEnv(); renderProv();
+    $('saveMsg').hidden = true;
+    UI.show('scr-research');
+  };
+  function readResearchForm() {
+    var st = UI.settings();
+    st.pid = $('rPid').value.trim();
+    st.sessionNo = Math.max(1, parseInt($('rSess').value, 10) || 1);
+    st.runMode = $('rMode').value === 'check' ? 'check' : 'normal';
+    st.mirrorRamp = $('rMirRamp').checked; st.mirrorCal = $('rMirCal').checked;
+    st.allowDemo = $('rDemo').checked; st.gameRamp = $('rGameRamp').checked;
+    st.mirrorReplay = $('rMirReplay').checked; st.mirrorProbe = $('rMirProbe').checked;
+    st.selfPaced = $('rSelfPaced').checked; st.gameProbe = $('rGameProbe').checked;
+    saveSettings(st);
+    renderHome();
+  }
+
+  function fileBase(s) {
+    return 'ZL_' + U.ymd(new Date(s.created_iso)) + '_' + U.safeName(s.participant_id) + '_S' + U.pad(s.session_no || 0, 2) + '_' + s.module +
+      (s.run_mode === 'check' ? '_check' : '') + (s.source === 'demo' ? '_demo' : '');
+  }
+  function showMsg(r, name) {
+    var el = $('saveMsg');
+    el.hidden = false;
+    if (r.ok) { el.className = 'msg ok'; el.textContent = name + ' を書き出しました。'; }
+    else if (r.code === 'declined') { el.className = 'msg warn'; el.textContent = '書き出しを取りやめました。'; }
+    else { el.className = 'msg bad'; el.textContent = 'このページでは書き出せませんでした（' + (r.code || r.error || '不明') + '）。'; }
+  }
+  UI.exportCsv = async function (s) {
+    var name = fileBase(s) + '.csv';
+    showMsg(await U.saveText(name, U.csv(s.trials, ZL.CONFIG.columns[s.module])), name);
+  };
+  UI.exportJson = async function (s) {
+    var name = fileBase(s) + '.json';
+    showMsg(await U.saveText(name, JSON.stringify(s, null, 1)), name);
+  };
+
+  function statusText(s) {
+    if (s.completed) return '完了';
+    if (s.aborted) return '中止（' + s.aborted + '）';
+    return '途中';
+  }
+  function renderSaved() {
+    var box = $('savedList');
+    box.textContent = '読み込み中…';
+    ZL.store.all().then(function (list) {
+      box.innerHTML = '';
+      if (!list.length) {
+        var p = document.createElement('p'); p.className = 'empty';
+        p.textContent = 'まだ記録はありません。課題を始めると、試行ごとにここへ保存されます。';
+        box.appendChild(p);
+        return;
+      }
+      list.forEach(function (s) {
+        var item = document.createElement('div'); item.className = 'saved-item';
+        var head = document.createElement('div'); head.className = 'saved-head';
+        var title = document.createElement('b'); title.textContent = NAMES[s.module] || s.module;
+        var meta = document.createElement('span'); meta.className = 'saved-meta';
+        var d = new Date(s.created_iso);
+        meta.textContent = U.stamp(d) + '　' + s.participant_id + '・S' + s.session_no + '　' +
+          (s.run_mode === 'check' ? '短縮　' : '') + (s.source === 'demo' ? 'デモ映像　' : '') +
+          (s.module === 'mirror' && s.replay ? (s.replay.ok ? '再生あり　' : '再生なし　') : '') +
+          s.trials.length + ' 行　' + statusText(s);
+        head.appendChild(title); head.appendChild(meta);
+        item.appendChild(head);
+        if (s.latency_calib) {
+          var lat = document.createElement('div'); lat.className = 'saved-sub';
+          lat.textContent = '機材遅延の推定（試験的）：' + (s.latency_calib.median_arr_ms != null ? s.latency_calib.median_arr_ms + ' ms' : '推定できず') +
+            '（有効 ' + s.latency_calib.n_valid + '/' + s.latency_calib.n_flashes + '）';
+          item.appendChild(lat);
+        }
+        var acts = document.createElement('div'); acts.className = 'saved-actions';
+        var b1 = document.createElement('button'); b1.type = 'button'; b1.className = 'btn small'; b1.textContent = '試行の表（CSV）';
+        b1.addEventListener('click', function () { UI.exportCsv(s); });
+        var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'btn small'; b2.textContent = 'すべて（JSON）';
+        b2.addEventListener('click', function () { UI.exportJson(s); });
+        acts.appendChild(b1); acts.appendChild(b2);
+        item.appendChild(acts);
+        box.appendChild(item);
+      });
+    });
+  }
+
+  function renderEnv() {
+    var e = ZL.env || {};
+    var rows = [
+      ['この版', 'v' + ZL.VERSION.app + '（' + ZL.VERSION.date + '）　' + (PROFILES[ZL.BUILD.profile] || 'ローカル（app/ を直接）') +
+        (ZL.BUILD.id ? '　ビルド ' + ZL.BUILD.id : '')],
+      ['画面の更新', e.refresh_hz ? U.r1(e.refresh_hz) + ' Hz（' + U.r1(e.refresh_ms) + ' ms）' : '測定中'],
+      ['入力', (e.touch_points ? 'タッチ（' + e.touch_points + ' 点）' : 'タッチなし') + '・' + (e.pointer_coarse ? '指が主' : 'マウスが主')],
+      ['画面', e.screen_w + '×' + e.screen_h + '（倍率 ' + e.dpr + '）'],
+      ['カメラのコマ通知', e.rvfc ? 'あり（requestVideoFrameCallback）' : 'なし（画面更新ごとに確認）'],
+      ['保存先', ZL.store.ok ? 'ブラウザ内（IndexedDB）' : 'メモリのみ（閉じると消えます）'],
+      ['claude.ai の公開ページ内', e.in_claude_viewer ? 'はい（カメラは使えません。書き出しは確認つき）' : 'いいえ'],
+      ['ブラウザ', e.ua]
+    ];
+    var tb = $('envTable');
+    tb.innerHTML = '';
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var th = document.createElement('th'); th.textContent = r[0];
+      var td = document.createElement('td'); td.textContent = r[1];
+      tr.appendChild(th); tr.appendChild(td); tb.appendChild(tr);
+    });
+  }
+
+  function renderProv() {
+    var tb = $('provTable');
+    tb.innerHTML = '';
+    var head = document.createElement('tr');
+    ['番号', '項目', 'いまの値', 'メモ'].forEach(function (h) { var th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+    tb.appendChild(head);
+    ZL.CONFIG.PROVISIONAL.forEach(function (p) {
+      var tr = document.createElement('tr');
+      [p.id, p.what, p.value, p.note + (p.decided ? '（決定 ' + p.decided + '）' : '')].forEach(function (v, i) {
+        var td = document.createElement('td'); td.textContent = v; if (i === 0) td.className = 'mono'; tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  UI.init = function () {
+    var place = PROFILES[ZL.BUILD.profile];   // 0.2.3：公開ページでは置き場所とビルドの番号も出す
+    $('barVer').textContent = 'v' + ZL.VERSION.app + (place ? '・' + place : '');
+    $('footVer').textContent = 'v' + ZL.VERSION.app + '（' + ZL.VERSION.date + '）' +
+      (ZL.BUILD.id ? '　' + (place || ZL.BUILD.profile) + '　ビルド ' + ZL.BUILD.id : '');
+    $('goMirror').addEventListener('click', function () { UI.openConsent('mirror'); });
+    $('goGame').addEventListener('click', function () { UI.openConsent('game'); });
+    $('goResearch').addEventListener('click', UI.openResearch);
+    $('consentBack').addEventListener('click', function () { UI.show('scr-home'); });
+    $('cAge').addEventListener('change', updateConsent);
+    $('cAgree').addEventListener('change', updateConsent);
+    $('consentGo').addEventListener('click', function () { UI.start(); });
+    $('doneHome').addEventListener('click', function () { renderHome(); UI.show('scr-home'); });
+    $('doneOther').addEventListener('click', function () { UI.openConsent(UI.last && UI.last.module === 'mirror' ? 'game' : 'mirror'); });
+    $('researchBack').addEventListener('click', function () { renderHome(); UI.show('scr-home'); });
+    ['rPid', 'rSess', 'rMode', 'rMirRamp', 'rMirCal', 'rDemo', 'rGameRamp', 'rMirReplay', 'rMirProbe', 'rSelfPaced', 'rGameProbe'].forEach(function (id) {
+      $(id).addEventListener('change', readResearchForm);
+    });
+    $('rPid').addEventListener('input', readResearchForm);
+    renderHome();
+    UI.show(ZL.hashResearch ? 'scr-research' : 'scr-home');
+    if (ZL.hashResearch) UI.openResearch();
+  };
+})(window.ZL = window.ZL || {});
+</script>
+<script>
+/* 起動：端末の情報を集め、保存先を開き、画面を用意する。
+   アドレスの末尾の #check で動作確認（短縮）、#research で研究者メニューから開く。
+   #autotest は開発用の自動テスト（ボタンを自動で押す）。実験には使わない。 */
+(function (ZL) {
+  'use strict';
+  var U = ZL.U;
+  var hash = (location.hash || '').toLowerCase();
+  ZL.hashCheck = hash.indexOf('check') >= 0;
+  ZL.hashResearch = hash.indexOf('research') >= 0;
+
+  if (hash.indexOf('autotest') >= 0) {
+    ZL.dev.auto = true;
+    var waitMs = hash.indexOf('slow') >= 0 ? 1600 : 120;   // #autotest-slow は画面写真を撮るための低速版
+    // 画面のボタンを少し待ってから押す（はい／いいえ・7 件法は乱数、それ以外は主ボタン）
+    ZL.dev.press = function (buttons, finish) {
+      setTimeout(function () {
+        var ids = buttons.map(function (b) { return b.id; });
+        var pick;
+        if (ids.indexOf('yes') >= 0) pick = Math.random() < 0.5 ? 'yes' : 'no';
+        else if (ids.indexOf('4') >= 0) pick = String(1 + Math.floor(Math.random() * 7));
+        else {
+          var prim = buttons.filter(function (b) { return b.kind === 'primary'; })[0];
+          pick = prim ? prim.id : ids[ids.length - 1];
+        }
+        finish(pick, performance.now(), 'auto');
+      }, waitMs + Math.random() * 200);
+    };
+  }
+
+  function gatherEnv() {
+    var coarse = false;
+    try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    return {
+      ua: navigator.userAgent, lang: navigator.language || '',
+      screen_w: screen.width, screen_h: screen.height, dpr: window.devicePixelRatio || 1,
+      viewport_w: window.innerWidth, viewport_h: window.innerHeight,
+      touch_points: navigator.maxTouchPoints || 0, pointer_coarse: coarse,
+      rvfc: typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype,
+      in_claude_viewer: !!(window.claude && typeof window.claude.use === 'function'),
+      refresh_ms: null, refresh_hz: null, autotest: !!ZL.dev.auto
+    };
+  }
+
+  function boot() {
+    ZL.env = gatherEnv();
+    U.measureRefresh(1000).then(function (r) { ZL.env.refresh_ms = U.r2(r.interval_ms); ZL.env.refresh_hz = U.r1(r.hz); });
+    ZL.camera.init(document.getElementById('camVideo'));
+    ZL.delay.init(document.getElementById('camVideo'));
+    ZL.stage.init();
+    U.viewerDownloads();
+    ZL.store.open().then(function () { ZL.ui.init(); });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})(window.ZL = window.ZL || {});
+</script>
+</body>
+</html>
